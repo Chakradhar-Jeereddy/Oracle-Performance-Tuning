@@ -1,84 +1,57 @@
-Practice 1 - Preparing Practice Environment Page | 1
-Oracle Database 12c the Ultimate Guide to SQL Tuning, a course by Ahmed Baraka
-Practice 1
+Practice 1 - Preparing Practice Environment
+
 Preparing Practice Environment
-Practice Target
-This practice guides you to prepare the environment that you will use in the course practices. The
-practices in the course were designed using Oracle VirtualBox appliances (virtual machine). You will
-build the following virtual machine:
-• Linux-based appliance
-This machine is a Linux 6.7 x64-bit based with Oracle database 12c R2 database installed
-on it.
-Note: this practice assumes that you have the knowledge to perform the basic tasks on Oracle
+You will build the following virtual machine:
+This machine is a Linux 6.7 x64-bit based with Oracle database 12c R2 database installed on it.
+
 VirtualBox.
-Practice Overview
-In high level, in this practice, you will perform the following tasks:
 • Create an Oracle VirtualBox Appliance, Linux-based machine named srv1
-• Install Oracle database software (12.2) in srv1 and create an Oracle Database (named ORADB) in
-it
+• Install Oracle database software (12.2) in srv1 and create an Oracle Database (named ORADB) in it
 • Set up Order Entry Schema (soe) in ORADB database
 • (optional) Install Swingbench in the hosting PC
 • Learn about creating and deleting snapshots in Oracle VirtualBox
-What if you already have srv1 virtual machine with ORADB database?
-If you already have the virtual machine srv1 with the database ORADB (probably from other courses),
-you can use it for this course. You only have to perform the steps in the following section:
 • Set up Order Entry Schema (soe)
-Practice 1 - Preparing Practice Environment Page | 2
-Oracle Database 12c the Ultimate Guide to SQL Tuning, a course by Ahmed Baraka
 Practice Environment Requirements
-Following are the requirements to prepare the practice environment. All those items must be available
-before you start with the practice.
+Following are the requirements to prepare the practice environment. All those items must be available before you start with the practice.
 Item Type Description
 PC machine hardware A PC with Windows 7, 8 or 10 64-bit installed on it to host the
+
 virtual machines.
 Following are the required specifications:
 Memory: 8 GB or more
 Storage free space: 60 GB or more
-This PC will be referred to in the course practices as the hosting
-PC.
-Oracle VirtualBox,
-release 5.1.x
+This PC will be referred to in the course practices as the hosting PC.
+Oracle VirtualBox, release 5.1.x
 software Software to create virtual machines (called virtual appliances)
-Note: You can use Oracle VirtualBox release 5.2.x. But there
-will be difference between it and the screenshots used in the
-course practice documents.
+Note: You can use Oracle VirtualBox release 5.2.x. But there will be difference between it and the screenshots used in the course practice documents.
 Release 5.1 can be downloaded from this link.
 Release 5.2 can be downloaded from this link.
-Putty software A program which provides a command line prompt to connect to
-a Linux server from Windows
-Can be downloaded from this link.
+
+Putty software A program which provides a command line prompt to connect toa Linux server from Windows Can be downloaded from this link.
 Swingbench 2.5
 (optional)
 software Download Swingbench from one of the following sources:
 • Course downloadable resources section
 OR
 • Dominic Giles portal
-Java Runtime for
-Windows
+Java Runtime for Windows
 (optional)
-software Java runtime JRE 1.8 for Windows 64-bit should be installed on
-your hosting PC. It will be used by the Swingbench software
+software Java runtime JRE 1.8 for Windows 64-bit should be installed on your hosting PC. It will be used by the Swingbench software
 Can be downloaded from this link.
+
 Oracle Database
 12c R2
-(12.2.0.1.0) for
-Linux x86 64-bit
-software To be installed in the Linux-based VirtualBox Appliance.
+(12.2.0.1.0) for Linux x86 64-bit software To be installed in the Linux-based VirtualBox Appliance.
 link
-Oracle Database
-12c Client (R1 or
-R2) for Windows
-(Only if you need
-Swingbench)
+Oracle Database 12c Client (R1 or R2) for Windows (Only if you need Swingbench)
 software To be installed on the hosting PC.
 link
+
 Practice 1 - Preparing Practice Environment Page | 3
-Oracle Database 12c the Ultimate Guide to SQL Tuning, a course by Ahmed Baraka
 Create Oracle VirtualBox Appliance
 A. Install the Software on the Hosting PC
 1. Install the following software in the hosting PC:
 • Oracle VirtualBox, release 5.1.
-You can install VirtualBox release 5.2, if you wish but its GUI is a little bit different from 5.1.
 • Putty
 • Java Runtime 1.8
 • Oracle Database Client (R1 or R2) for Windows (only if you want to use Swingbench)
