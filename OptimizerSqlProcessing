@@ -1,4 +1,4 @@
-Optimizer SQL Processing
+-- Describe the Query Optimizer SQL Processing stages
 
 -- What is the aim of query optimizer?
    Generate and select most optimal execution plan (plan with lowest execution cost).
