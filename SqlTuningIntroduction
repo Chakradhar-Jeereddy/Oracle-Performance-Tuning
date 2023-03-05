@@ -1,0 +1,63 @@
+Oracle performance tuning
+-- How to make Oracle sql statements run more efficently?
+-- Look for specific information, measurable and achieveable target and not generic.
+-- We can't waste time and effort to achieve unrealistic target.
+-- Not how to tune the database, instance memory and IO.
+
+Note - An SQL performance issue should be one which is spesific, measurable interms of time and achievable.
+
+If we care about achieving the functionality of application with a peace of code without taking care of writing the code by following best practices.
+Performance measutement is very important in testing phase.
+Ideally the application should be stress tested againts volumes of data and number of application users that are near to their numbers in production.
+If this not done, they will phase performance issues when they go to production
+
+Truning areas
+
+SQL tuning
+ - data access structure
+ - influence optimizer
+ - monitoring SQL
+ - Writing efficent SQLs
+ 
+Instance tuning
+Memory componenets
+I/O
+background processes
+space managment
+OS
+
+Perpose of SQL tuning
+ - Reduce user response time (Decreasing the time between when a user submits a statement and when the reponse is received)
+ - increase throughput - Reducing the resources needed to execute the process.
+ 
+Proactive - top/down
+Reactive -  bottom/up
+
+
+SQL tuning workflow/methodology
+
+1) Identify the suboptimal statements (causing performance issue)
+   by reviewing the past execution history and their SQL statistics
+   
+2) Gather performance related stats to build an efficient execution plan. Make sure objects referenced by the statements has their statistics updated.
+    (Optimizer stats, histograms )
+   
+3) Determine the root cause of the problem
+   Inefficently written SQL, suboptimal execs plans, Missing SQL access str, stale stats - h/waste
+
+4) Define the scope of the problem 
+   The scope of the solution should match the scope of the problem.
+   Ex
+   --A statement is using literals, need to enable cursor sharing (but it effects the whole database)
+   -- Instread enable cursor sharing at session level or use baselines
+   -- Optimizer behaviour, doing it as parameter level will effect the other modules inside database, instead do it at session or statement level.
+
+5) Implement corrective action - Depends on the problem
+   Rewriting the code
+   
+
+
+6) Prevent SQL performance regressions
+  -- Update stats
+  -- SQL profiles
+  -- SQL plan baselines
