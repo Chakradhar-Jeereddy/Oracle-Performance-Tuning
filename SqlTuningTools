@@ -1,0 +1,25 @@
+SQL Tuning Tools
+
+-- Automated tools
+   ADDM
+   SQL Tuning Advisor
+   SQL Access Advisor
+   SQL Performance Analyzer
+   Optimizer Statistics Advisor
+   SQL plan management
+   SPM Evolve Advisor
+   
+Note - The above tools may not always capture the culprit, sometime we need to manually investigate to identify root cuase.
+
+-- Manual SQL Tuning Tools
+   Performance views
+   Display execution plans
+   Tracing tools
+   Optimizer hints
+   
+-- User Interface to SQL Tuning Tools
+   SQLPlus
+   Enterprise Manager Database Express
+   Enterprise Manager Cloud control
+   SQL developer
+   
