@@ -1,0 +1,41 @@
+Optimizer SQL Processing
+
+-- What is the aim of query optimizer?
+   Generate and select most optimal execution plan (plan with lowest execution cost).
+   
+-- What is cost?
+   It is based on three factors.
+   Selectivity (Stats based, gets from data dictionary) 
+   Cardinality (Stats based)
+   Cost: CPU, I/O and communication (fixed for a system).
+   
+   Theory - When a user submits a query to database, the database can execute the query in multiple possible ways. Those possible ways are called execution plans.
+            Database has to decide amoung those execution plans which one is more efficient.
+            The database part that generates possible execution plans and decides the best one among those is called query optimizer.
+            Optimizer job is very crutial in any database performance, if it picks up a wrong execution plan, it may lead to a very suboptimal query.
+
+-- How optimizer performance optimzation?
+
+   Stage1: Parsing
+           -- Syntax check
+	       -- Semantic check (objects referenced by the query are exists.)
+	       -- Shared pool check (See if the statement ever been executed before), if it is first time, optimizer generates hash value for the statement and 
+	          saves it in the sharedpool.
+	 
+	  
+   Stage2: Optimzation
+           -- Generates possible exection plans (expensive state, database requires lot of resources to perform it). When ever it is possible we need to
+		      avoide such steps, if a query references multiple objects, the optimizer can easly generate dozens of plans, thats why the step is considered and
+			  expensive step.
+			  
+		   -- At the end of this stage, the optimizer should select most efficient plan and save it in the sharedpool along side sql statement and pass it to the 
+		      next step.
+			  
+		    
+   Stage3: Row source generation 
+		   -- Genrate query plan, which means it receives execution plan from previus step and converts that into binary iterative plan. Combining the execution
+			  plan produced in the previous steps into a language that is understood by the engine. (This is also an expensive process),
+			  
+	
+	Stege4: Execution
+	        -- Executes the row source tree produced by the row source generator.
