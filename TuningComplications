@@ -1,0 +1,20 @@
+#Performance tuning is a complicated topic
+
+-- Developers rush to program
+-- long learning curve, amazingly we don't find a reference that covers all the required knowledge for SQL tuning, when we dive into the tuning, we always
+   learn something new.
+   
+-- It is linked to all IT technology stack
+   Starting from client machines, connections, appliences, server hardware, storage and database
+   Dont be suppised if you know after tuning a slow application performance that the issue is with storage that needs firmware upgrade.
+   
+-- Impacted by all system development stages, neglecting at certain stages will lead to performance issues later in the production environment.
+   Establishing communication between different teams become as hard as issue itself.
+   
+-- Sometimes requires low level knowledge to get it fixed. 
+
+-- Some performance issues cases are hard to reproduce.
+   Thats why learning PT tools is just a first step, expreience it what makes the  real difference.
+   On the contrary when you lean PT means that you actually make yourself different, it means your joining top IT prefessional team and by leaning the PT
+   you're doing a big jump into that direction.
+   
