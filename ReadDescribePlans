@@ -1,0 +1,105 @@
+Learn how to read and describe Query Execution plans
+
+Execution plan - Set of steps optimizer performs when executing a query.
+                 The plan may contain
+				 -- Row source: set of rows returned by a step in the plan 
+				 -- Access path: how rows are physically retrived from the object
+				 -- Join order: the order at which tables are accessed.
+				 -- Join method and types: How row sources of two steps are joined
+				 
+
+Example1: 
+
+SELECT LAST_NAME, DEPARTMENT_NO FROM EMPLOYEES WHERE JOB_TITLE LIKE 'HR%';
+---------------------------------------
+| Id | Operation       | Name      |
+---------------------------------------
+| 0 | SELECT STATEMENT |           |
+| 1 | TABLE ACCESS FULL| EMPLOYEES |
+---------------------------------------
+Predicate Information (identified by operation id):
+---------------------------------------------------
+1 - access("JOB_TITLE" LIKE 'HR%')
+filter("JOB_TILE" LIKE 'HR%')
+
+
+Note - The step with largest ID will be the first step executed by optimizer, so step 0 is the last step.
+	 - In the first step the optimizer access the table to get the row source and  than it is passed to step 1, data will be sent to client at 
+		    step 1.
+	        
+			
+
+Example2: 
+
+SELECT LAST_NAME, DEPARTMENT_NO FROM EMPLOYEES WHERE JOB_TITLE LIKE 'HR%';
+--------------------------------------------------------------
+| Id | Operation                           |    Name        |
+--------------------------------------------------------------
+| 0 | SELECT STATEMENT                     |                |
+| 1 |   TABLE ACCESS BY INDEX ROWID BATCHED| EMPLOYEES      |
+| 2 |    INDEX RANGE SCAN                  | EMP_JOBCODE_IX |
+--------------------------------------------------------------
+
+Note - In step 2, index is accessed firt to retrieve rowids and row source is returned to step 1, the table is access using rowids and the 
+       rowsource is returned to step 1, the result is given to client at step 1.
+
+
+EXAMPLE3 :
+SELECT E.ENAME, D.DNAME FROM EMP E, DEPT D WHERE E.DEPT_NO=D.DEPT_NO AND E.DEPT_NO=50;
+--------------------------------------------------------------
+| Id | Operation                             | Name          |
+--------------------------------------------------------------
+| 0  | SELECT STATEMENT                      |               |
+| 1  |  NESTED LOOPS                         |               |
+| 2  |   TABLE ACCESS BY INDEX ROWID         | DEPT          |
+| 3  |    INDEX UNIQUE SCAN                  | DEPT_PK       |
+| 4  |   TABLE ACCESS BY INDEX ROWID BATCHED | EMP           |
+| 5  |    INDEX RANGE SCAN                   | EMP_DEPTNO_IX |
+--------------------------------------------------------------
+
+Note - The plan is generated for an eque join query
+       The Fist steps are inner most onces (5 and 3)
+	   Rowids are extracted using deptno index of emp table and primary key index of deptno from dept table.
+	   Rows are retrieved from DEPT and EMP in step 4 and 2
+	   The rowsouces from step 4&2 are merged in step 2 and returend to user in step 1
+	   
+	   The plan includes access path and join method
+	   
+	   
+	   
+Example4:
+
+SELECT E.ENAME, D.DNAME FROM EMP E, DEPT D WHERE E.DEPT_NO=D.DEPT_NO AND E.DEPT_NO=50;
+------------------------------------------------------------------------------------------------------
+| Id | Operation                            | Name          | Rows | Bytes | Cost (%CPU)| Time     |
+------------------------------------------------------------------------------------------------------
+| 0  | SELECT STATEMENT                     |               | 23   | 736   | 3 (0)      | 00:00:01 |
+| 1  |  NESTED LOOPS                        |               | 23   | 736   | 3 (0)      | 00:00:01 |
+| 2  |   TABLE ACCESS BY INDEX ROWID        | DEPT          | 1    | 13    | 1 (0)      | 00:00:01 |
+|* 3 |    INDEX UNIQUE SCAN                 | DEPT_PK       | 1    |       | 0 (0)      | 00:00:01 |
+| 4  |   TABLE ACCESS BY INDEX ROWID BATCHED| EMP           | 23   | 437   | 2 (0)      | 00:00:01 |
+|* 5 |    INDEX RANGE SCAN                  | EMP_DEPTNO_IX | 23   |       | 1 (0)      | 00:00:01 |
+------------------------------------------------------------------------------------------------------
+
+Note: We can display cardinality, bytes, CPU cost and time in the execution plan
+      Rows - Estimated number of rows accessed by optimizer at each step also called cardinality. 
+	         The estimate is based on object statistics, if there is big difference between the estimate and actual number of rows in table,
+             it may lead to serious performance degradation.
+			 
+	  Bytes - Estimated bytes accessed by the operation
+	  
+	  Cost -  It represents the cost of each operation, it represents the operation overhead and is caclulated based on selectivity, cardinality and
+	          system statistics. Cost is cummilative.
+			  Step 5 and 3 are executed first. Step 4 and 2 are next. Cost of step 4 is 2(it included cost of step 5), the cost of step 2 is 1(0+1)
+			  cost of step 1(Step 4+step 2)(2+1), and total cost at set 0 is 3.
+			  
+	  %CPU - Is the CPU processing time take during execution
+	  
+	  Time - Estimated time period for the step execution
+			  
+Note - When tuning the SQL query we should always aim for lowering the cost of execution plan to minimum.
+
+
+	            
+	  
+
