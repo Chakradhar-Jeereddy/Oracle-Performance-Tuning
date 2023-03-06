@@ -1,0 +1,149 @@
+Access path to data
+
+Access path - A result of access path is row source and it will be a single rowsource unitary operation
+              It is a technique to retrieve rows from a row source.
+			  
+Access path types - Full tablescan, Table access by rowid, sample table scan, index unique scan, index range scan, index full scan, 
+                    index fast full scan, index skip scan, index join scan, bitmap index singe value, bitmap index range scan,
+					bitmap merge, cluster scan and hash scan.
+
+Joins - How the row sources of two steps are joined?
+
+Join methods - Hash, Nested, Sort Merge, Cartesian
+Join types   - Inner joins, Outer joins, Semijoins and Antijoins
+
+
+
+a) Full table scan(FTS)
+ How does it work?
+   It reads all rows from a table and then filters our those rows that do not meet the selection criteria.
+ When is it used by optimizer?
+   No index
+   Index exists but it can't be used
+    * Funtion applied on the column
+	* Is null operator is used when an indexed column contains null.
+   low selectivity (selecting most of the rows)
+   According to table statistics table is small.
+   
+   
+The following queries were executed using FTS:
+SELECT EMP_NO, ENAME, JOB_CODE FROM EMP; 
+SELECT EMP_NO, ENAME FROM EMP WHERE NOTES LIKE 'CONTRACTED%'; (Notes column is not indexed)
+SELECT EMP_NO, ENAME FROM EMP WHERE UPPER(ENAME) LIKE 'A%';   ( A function has been used on an indexed column)
+
+---------------------------------------------------------------
+| Id | Operation        | Name | Rows | Bytes | Cost (%CPU)|
+---------------------------------------------------------------
+| 0 | SELECT STATEMENT  |      | ***  | ***** | ** (0)     |
+| 1 | TABLE ACCESS FULL | EMP  | ***  | ***** | ** (0)     |
+---------------------------------------------------------------
+   
+b) Table accessed by rowid (low cost)
+
+   Obtain the rowid as input from index scan or from a predicate and retrieve matching rows from table.
+   This access path is used by optimzer after the scan or one or more indexes. Rowid gives physical address of the row in datafile(faster).
+   
+   The following query has a where condition based on a primary key: the primary key index is scanned, then the rows are retrieved form
+   the table by ROWID:
+   SELECT EMP_NO, ENAME, JOB_CODE FROM EMP WHERE EMP_NO=100;
+------------------------------------------------------
+| Id | Operation                    | Name   | Rows |
+------------------------------------------------------
+| 0  | SELECT STATEMENT             |        | 1    |
+| 1  |  TABLE ACCESS BY INDEX ROWID | EMP    | 1    |
+| 2  |   INDEX UNIQUE SCAN          | EMP_PK | 1    |
+------------------------------------------------------
+
+c) Index Unique scan
+   It is used when equal operator is used and indexed column is unique. The search happens in order and when it finds the rowid it stops.
+   Therefore it is very efficent.   
+
+d) Index range scan
+   It is used when <,> and beween operators are used and when using equal operator on non-unique index.
+   It scans the leaf block for values between lower and upper boundy and stops searching.
+   
+   SELECT EMP_NO, ENAME, JOB_CODE FROM EMP WHERE DEPT_NO BETWEEN 10 AND 30; (between lower and upper boundry.
+   SELECT EMP_NO, ENAME, JOB_CODE FROM EMP WHERE DEPT_NO=10; (the dept_no is not a column with unique index)
+   
+-------------------------------------------------------------
+| Id| Operation                           | Name          |
+-------------------------------------------------------------
+| 0 | SELECT STATEMENT                    |               |
+| 1 |  TABLE ACCESS BY INDEX ROWID BATCHED| EMP           |
+| 2 |   INDEX RANGE SCAN                  | EMP_DEPTNO_IX |
+-------------------------------------------------------------
+
+e) Index range scan descending
+
+The following query used index range scan descending :
+ SELECT * FROM WAREHOUSES WHERE WAREHOUSE_ID>180 ORDER BY WAREHOUSE_ID DESC;
+------------------------------------------------------
+| Id | Operation                    | Name          |
+------------------------------------------------------
+| 0 | SELECT STATEMENT              |               |
+| 1 |  TABLE ACCESS BY INDEX ROWID  | WAREHOUSES    |
+| 2 |   INDEX RANGE SCAN DESCENDING | WAREHOUSES_PK |
+-----------------------------------------
+
+f) Index full scan
+     - Reads the entire index in order
+	 - IO access is one block at a time
+	 - Query includes an order by clause on not null indexed column,
+	 - It eliminates separate sort operation.
+
+SELECT DEPT_NO FROM DEPT ORDER BY DEPT_NO;
+------------------------------------
+| Id | Operation        | Name    |
+------------------------------------
+| 0  | SELECT STATEMENT |         |
+| 1  |  INDEX FULL SCAN | DEPT_PK |
+------------------------------------
+
+SELECT DEPT_NO, DNAME FROM DEPT ORDER BY DEPT_NO;
+-----------------------------------------------
+| Id | Operation                    | Name    |
+-----------------------------------------------
+| 0  | SELECT STATEMENT             |         |
+| 1  |  TABLE ACCESS BY INDEX ROWID | DEPT    |
+| 2  |   INDEX FULL SCAN            | DEPT_PK |
+-----------------------------------------------
+
+	 
+g) Index fast full scan
+    - Reads entire index in unsorted order (as they exist in disk)
+	- it eliminates reading data from underlying table.
+	- I/O access is multi-block
+	- When query only accesses attributes in the index
+	- Not-null constraint not required
+
+----------------------------------------
+| Id | Operation              | Name   |
+----------------------------------------
+| 0  | SELECT STATEMENT       |        |
+| 1  |  SORT AGGREGATE        |        |
+| 2  |   INDEX FAST FULL SCAN | EMP_PK |
+----------------------------------------
+
+h) Index skip scan 
+    -- It comes into picture when composite index is used.
+	-- And leading column is not used in filter condition.
+	-- Leading column as less distinct values.
+
+
+CREATE INDEX CUST_CLASS_EMAIL_IX ON CUSTOMERS(CUSTOMER_CLASS, CUST_EMAIL);
+SELECT * FROM CUSTOMERS WHERE CUST_EMAIL = 'myemail@******.com';
+
+-------------------------------------------------------------------
+| Id | Operation                           | Name                |
+-------------------------------------------------------------------
+| 0 | SELECT STATEMENT                     |                     |
+| 1 |  TABLE ACCESS BY INDEX ROWID BATCHED | CUSTOMERS2          |
+| 2 |   INDEX SKIP SCAN                    | CUST_CLASS_EMAIL_IX |
+-------------------------------------------------------------------
+     
+
+
+
+
+
+
