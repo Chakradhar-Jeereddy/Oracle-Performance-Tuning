@@ -1,0 +1,68 @@
+Display execution plans
+
+--Different methods to display plans
+--Pros and Cons
+
+Methods:
+ - Autotrace: User must be granted with plustrace role and statement needs to executed to see the plan.
+              Syntax - SET AUTOT[RACE] {OFF|ON|TRACE[ONLY]} [EXP[LAIN]] [STAT[ISTICS]]
+			           set autot on stat
+					   set autot on exp
+					   set autot traceonly (query output will not be printed)
+					   set autot on stat
+					   
+					   
+ - explain plan for: The advantage is that it doesn't execute the query (but the estimated plan showed may not be used by optimizer 
+                     if stats are not accurate)
+					 
+ - dbms_xplan: 
+             Syntax: 
+			   DBMS_XPLAN.DISPLAY(
+                 TABLE_NAME IN VARCHAR2 DEFAULT 'PLAN_TABLE',
+                 STATEMENT_ID IN VARCHAR2 DEFAULT NULL,
+                 FORMAT IN VARCHAR2 DEFAULT 'TYPICAL',
+                 FILTER_PREDS IN VARCHAR2 DEFAULT NULL);
+			 Examples:
+			   SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY); -> Displays the most recent plan.
+               SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY(NULL,NULL,'ALL'));  -> Displays more details of plan with format=ALL
+               SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY('MY_PLAN_TABLE','statement1','BASIC ROWS')); ->Displays basic plan info of SQL_ID
+			   
+			 Functions:
+			  display                                        - From plan table
+			  display_cursor(SQL_ID,child_no,format)         - from cached sql cursor(shared pool), displays plan actually used by optimizer
+			                                          Format - Basic(display user level info)
+													           Typical(Adaptive info and is default), 
+															   Serial(does't show parallel info)
+															   Rows(number of rows)
+															   Cost(shows the execution cost)
+															   Predicate(display filter section)
+															   Memstats (memory managment stats)
+															   IOstats(shows IO statisics)
+	     Example - 
+			  SELECT * FROM TABLE ( DBMS_XPLAN.DISPLAY_CURSOR); -> Displays execution plan of last SQL statement executed in current session.
+				SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR('sqilcd8tsp')); - Displays execution plan associated with specific SQL ID.
+				SELECT * FROM table (DBMS_XPLAN.DISPLAY_CURSOR('sqilcd8tsp', NULL, 'IOSTATS'); - Displays IO statistics in the output.
+				
+																   
+			  display_awr                - from automatic workload repository(AWR)
+			  display_sqlset             - SQL tuning set (STS)
+			  display_sql_plan_baseline  - SQL baselines
+			   
+			  
+ - SQL developer
+ - EM express
+ - v$ views
+      V$SQL_PLAN(contains execution plan information for each cursor in sharedpool)
+	  V$SQL_PLAN_STATISTICS_ALL 
+ 
+
+-- Pros of each method 
+    Autotrace - Easy to display and read plans
+    Explain plan for - No need to execute the query
+    dbms_xplan       - Displays plans of other sessions
+    v$views          - not generally used, above methods are preferred instead.
+
+-- Cons of each method
+    Autotrace - Need to execute query every time, displays the plan of current session only and not the one used by optimizer
+    Explain plan - No need to execute query but it only shows the estimated plan based on stats and may not be choosen by optimizer during execution.
+    DBMS_XPLAN - displays from AWR, cursor and previous statements from session, baselines etc.
