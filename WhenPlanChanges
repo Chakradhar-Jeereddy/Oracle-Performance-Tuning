@@ -1,0 +1,6 @@
+When initial execution plans are changed?
+    This usually happens if there is significan difference between the object statistics in data dictionary and its actual statistics.
+    When optimizer executes the query it monitors the number of rows that are actually returned by each operation and compares it with 
+    the optimizer estimate. If optimizer realizes that the current object statistics do not reflect the current status, 
+	  it changes the initial execution plan and use an alternative one that is more efficient. Techinically there are few mechanisms that 
+    make the optimizer change initial execution plans. These loose mechanisms are collectively called adaptive plan.
