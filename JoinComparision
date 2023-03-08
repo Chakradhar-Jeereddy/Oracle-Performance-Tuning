@@ -1,0 +1,7 @@
+Comparison Between the Joins
+ 
+                      Advantage          Probe Memory Component   Data Set Sizes    Requires Equijoin   cons
+					  
+Nested loop joins    Better response            No                Small data sets       NO             no large data sets
+Hash Joins           Better throughput			Yes				  Large data sets       Yes            More PGA
+Sort Merge Joins     Better throughput          Yes               Large data set        NO             Sorting is expensive
