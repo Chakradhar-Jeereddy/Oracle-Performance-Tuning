@@ -1,0 +1,44 @@
+Hash Joins
+
+It is used to join larger data sets.
+The outer table, the smaller data source is saved in the memory(PGA).
+Dept table is saved in the memory becuase it is smaller data source.
+It applies has function to the table in memory which allows the process to know direct location of the row in hash table, no need to perform FTS or 
+index scan.
+Using the hash function input to probes the driven/inner table from buffer cache, the driven table is called probe table.
+
+How the rows are fetched and joined?
+The rows are first fetched from probe table, for each row it retrives from prob table it probs the hash table to which the rows that match the join 
+criteria and fetches it. It does that by applying hash function to the join column.
+
+How does it work?
+- The smaller table is saved in the PGA using a hash function (hash table)
+- The rows are fetched from the other table (probe table) (using FTS or index)
+- For each retrieved row, the hash table is probed using the same hash function
+
+When does the optimizer consider hash joins?
+  When all of the following is true:
+- A relatively large amount of data must be joined
+- The join is an equijoin
+
+Pros
+- Fetching the rows from the memory is very fast
+- Hash function directly accesses the required row in the hash table
+- Reduce latching overhead on the data blocks because the table is saved in the PGA
+
+Cons:
+- If the entire hash table do not fit in memory, then the database partitions the row sources, and the join proceeds partition by partition. 
+  This can consume a lot of sort area memory, and I/O to the temporary tablespace.
+  
+SELECT EMP_NO,ENAME,DNAME FROM EMP, DEPT WHERE DEPT.DEPT_NO = EMP.DEPT_NO AND EMP_NO=630;
+-----------------------------------------------
+| Id | Operation                     | Name   |
+-----------------------------------------------
+| 0  | SELECT STATEMENT              |        |
+| 1  |  HASH JOIN                    |        |
+| 2  |   TABLE ACCESS FULL           | DEPT   |  (PGA)
+| 3  |   TABLE ACCESS BY INDEX ROWID | EMP    |
+| 4  |    INDEX UNIQUE SCAN          | EMP_PK |
+-----------------------------------------------
+
+Here EMP is the probe table and DEPT is hash table as it comes right after the EMP table.
