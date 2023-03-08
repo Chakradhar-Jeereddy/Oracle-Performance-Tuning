@@ -1,0 +1,10 @@
+Cartesian Join
+
+
+Is used when one or more of the tables does not have any join conditions to any other tables in the statement
+Every row from one data source is joined with every row from the other data source
+Number of output rows = number of rows in the first data set x number of rows in the second data set
+Practically, it is rarely used
+
+
+Example: SELECT EMP_NO,ENAME,DNAME FROM EMP, DEPT; (Join condition is missing)
