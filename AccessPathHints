@@ -1,0 +1,286 @@
+Verious ways and techniquies to incfuence optimizer pick better execution plans
+
+--Optimizer hints
+--Modify the optimizer goal
+--Inform the optimizer about the changes on the data statistics
+--Perfom specific optimizer functionality
+--Perfom what-if analysis and tests on SQL statement
+--Stabilize the execution plan: a common practice is in database upgrades
+--Enable or disable an optimizer feature.
+
+--Techniques of influencing the optimizer
+--Manage object statistics(using dbms_stats)
+--Enabling and managing SQL profiles
+--Enabling and managing SQL plan managment(SPM) (or stored outlines)
+--Modifying initialization parameters
+--Using SQL hins (in development)
+
+Note - SQL profile can be used to fix a plan if you historically have atleast have one optimal exection of the query.
+       
+ --Table and Index Access paths
+
+1) FULL - Syntax (/*+full(table_name)*/), do not use quotes for the table name inside hint.
+
+select /*+full(DEPT)*/ dname from dept where dept_no=10;
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 3383998547
+
+--------------------------------------------------------------------------
+| Id  | Operation         | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |      |     1 |    13 |    35   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS FULL| DEPT |     1 |    13 |    35   (0)| 00:00:01 |
+--------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter("DEPT_NO"=10)
+
+select  /*+full(DEPT)*/ dname from dept d where dept_no=10;
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 602043285
+
+---------------------------------------------------------------------------------------
+| Id  | Operation                   | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT            |         |     1 |    13 |     1   (0)| 00:00:01 |
+|   1 |  TABLE ACCESS BY INDEX ROWID| DEPT    |     1 |    13 |     1   (0)| 00:00:01 |
+|*  2 |   INDEX UNIQUE SCAN         | DEPT_PK |     1 |       |     0   (0)| 00:00:01 |
+---------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("DEPT_NO"=10)
+
+Hint Report (identified by operation id / Query Block Name / Object Alias):
+Total hints for statement: 1 (N - Unresolved (1))
+---------------------------------------------------------------------------
+
+   1 -  SEL$1
+         N -  full(DEPT)
+
+select  /*+full(d)*/ dname from dept d where dept_no=10;
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 3383998547
+
+--------------------------------------------------------------------------
+| Id  | Operation         | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |      |     1 |    13 |    35   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS FULL| DEPT |     1 |    13 |    35   (0)| 00:00:01 |
+--------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter("DEPT_NO"=10)
+   
+Note - In case alias nam is used for hint, we should use the alias name inside the hint otherwise
+       the hint will be ingonred by optimizer.
+
+---------------------------------------------------------------------------------------------------------------------
+
+2) INDEX  - Influcence the optimizer to perform index scan for a specified table.
+         Syntax - /*+index (table index_name_list)*/
+  Usage -
+         Full table scan is not considered
+		 If no index name is provided in the hint,cost of all available indexes are evaluated and 
+		 uses one with lowest cost and same is the case when multiple indexes are provided.
+
+select /*+index(e DEPT_IX)*/ emp_no,ename,dept_no from emp e where emp_no between 500 and 500 and dept_no=60;
+
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 1310700082
+
+-----------------------------------------------------------------------------------------------
+| Id  | Operation                           | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                    |         |     1 |    23 |     9   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS BY INDEX ROWID BATCHED| EMP     |     1 |    23 |     9   (0)| 00:00:01 |
+|*  2 |   INDEX RANGE SCAN                  | DEPT_IX |   699 |       |     2   (0)| 00:00:01 |
+-----------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter("EMP_NO"=500)
+   2 - access("DEPT_NO"=60)
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+3) INDEX_FFS - Instructs the optimizer to perform a fast full scan for a specified table.
+            syntax /*+index_ffs(table index_name_list)*/
+			Just to refresh memory this access path is used when index alone can be used to obtain the query rows.
+			If you use the query that cannot use the index alone to provide the rows, the hint and index is ignored.
+
+select /*+index_ffs (e emp_pk) */ count(*) from emp e;
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 3578136827
+
+------------------------------------------------------------------------
+| Id  | Operation             | Name   | Rows  | Cost (%CPU)| Time     |
+------------------------------------------------------------------------
+|   0 | SELECT STATEMENT      |        |     1 |     2   (0)| 00:00:01 |
+|   1 |  SORT AGGREGATE       |        |     1 |            |          |
+|   2 |   INDEX FAST FULL SCAN| EMP_PK |   879 |     2   (0)| 00:00:01 |
+------------------------------------------------------------------------
+
+select /*+index_ffs(e emp_pk)*/ emp_no, ename from emp e;
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 1365900113
+
+----------------------------------------------------------------------------------------------
+| Id  | Operation                           | Name   | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                    |        |   879 | 17580 |    15   (0)| 00:00:01 |
+|   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| EMP    |   879 | 17580 |    15   (0)| 00:00:01 |
+|   2 |   INDEX FULL SCAN                   | EMP_PK |   879 |       |     3   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------------
+
+Hint Report (identified by operation id / Query Block Name / Object Alias):
+Total hints for statement: 1 (U - Unused (1))
+---------------------------------------------------------------------------
+
+   1 -  SEL$1 / E@SEL$1
+         U -  index_ffs(e emp_pk)
+		 
+Note - In the above query the fast full scan cannot be used.
+
+
+---------------------------------------------------------------------------------------------------------------
+4) INDEX_SS  - Index skip scan syntax /*+ index_ss(table index_name_list)*/
+            It is used on a composite index, when the query doesnt reference the leading column, but references some of the other index key columns.
+Create a composite index
+create index cust_class_email_ix on customers(customer_class, cust_email);
+select /*+index_ss(c cust_class_email_ix) */ * from customers c where cust_email like '%xyz%';
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 868870027
+
+-----------------------------------------------------------------------------------------------------------
+| Id  | Operation                           | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                    |                     |  2285 |   254K|  2582   (1)| 00:00:01 |
+|   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| CUSTOMERS           |  2285 |   254K|  2582   (1)| 00:00:01 |
+|*  2 |   INDEX SKIP SCAN                   | CUST_CLASS_EMAIL_IX |  2285 |       |   300   (0)| 00:00:01 |
+-----------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - filter("CUST_EMAIL" LIKE '%xyz%' AND "CUST_EMAIL" IS NOT NULL)
+
+		
+    
+    
+--------------------------------------------------------------------------------------------------
+5) NO_INDEX : When we don't want an optimizer use an index, use this hint.
+           Syntax - /*+no_index(table index_name_list)*/
+           Usages - Full table scan is considered
+                    If no index is provided, all the table indexes will not be scanned.
+                    If one index is provided, only the named index will not be considered.
+                    If multiple indexes are provided only the provided indexes are not considered.					
+select /*+no_index(dept DEPT_PK)*/  count(*) from dept order by dept_no;
+
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 315352865
+
+---------------------------------------------------------------------------
+| Id  | Operation          | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------
+|   0 | SELECT STATEMENT   |      |     1 |     3 |    35   (0)| 00:00:01 |
+|   1 |  SORT AGGREGATE    |      |     1 |     3 |            |          |
+|   2 |   TABLE ACCESS FULL| DEPT |     7 |    21 |    35   (0)| 00:00:01 |
+---------------------------------------------------------------------------
+
+Below is without the hint
+ select count(*) from dept order by dept_no;
+
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 2928620147
+
+----------------------------------------------------------------------------
+| Id  | Operation        | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------
+|   0 | SELECT STATEMENT |         |     1 |     3 |     1   (0)| 00:00:01 |
+|   1 |  SORT AGGREGATE  |         |     1 |     3 |            |          |
+|   2 |   INDEX FULL SCAN| DEPT_PK |     7 |    21 |     1   (0)| 00:00:01 |
+----------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------------------------
+Optimizer modes
+
+ALL_ROWS  - Best Througput, tries to deliver entire dataset in least possible time
+            Best for patch processing and reporting application.
+FIRST_ROWS(n) - Best response time, used for interactive applications.
+                Tries to deliver first n rows in least possible time.
+				Overall exection process could be longer.
+alter system set optimizer_mode='ALL_ROWS' or 'FIRST_ROWS_n'
+alter session set optimizer_mode='ALL_ROWS' or 'FIRST_ROWS_n'
+select /*+ALL_ROWS*/ emp_no,ename,salary,job_code from emp where HIRE_DATE <=sysdate-365;
+
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 3956160932
+
+--------------------------------------------------------------------------
+| Id  | Operation         | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |      |   879 | 32523 |    35   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS FULL| EMP  |   879 | 32523 |    35   (0)| 00:00:01 |
+
+Note - We can set the optimizer mode at database and session level.
+       Also in sql statements
+select /*+first_rows(2)*/ emp_no,ename,salary,job_code from emp where HIRE_DATE <=sysdate-365;
+
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 3956160932
+
+--------------------------------------------------------------------------
+| Id  | Operation         | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |      |     2 |    74 |     2   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS FULL| EMP  |     2 |    74 |     2   (0)| 00:00:01 |
+--------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter("HIRE_DATE"<=SYSDATE@!-365)
+
+Note - The first query retrived all rows, reducers the overall execution of the statement 
+       where has the second query retrived only first 2 rows in, better respose time but 
+	   overall execution time increases.
+ 
+select /*+first_rows(2)*/ emp_no,ename,salary,job_code from emp where HIRE_DATE <=sysdate-365 order by emp_no;
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 4004826672
+
+--------------------------------------------------------------------------------------
+| Id  | Operation                   | Name   | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT            |        |     2 |    74 |     3   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS BY INDEX ROWID| EMP    |   879 | 32523 |     3   (0)| 00:00:01 |
+|   2 |   INDEX FULL SCAN           | EMP_PK |     2 |       |     2   (0)| 00:00:01 |
+--------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter("HIRE_DATE"<=SYSDATE@!-365)
+Note: Grouping and sorting suppress the effect of first_rows(n) hint as in the example above. 
