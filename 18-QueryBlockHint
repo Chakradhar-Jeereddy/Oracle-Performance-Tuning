@@ -1,0 +1,34 @@
+Hint on SQL BLOCK or sub query
+
+QB_NAME - This hint is used to give a name to a block of query or subquery.
+          The hints can be passed to this inner or subquery from outer query using @QB_NAME
+		  
+		  
+create or replace view dept10_vw as select /*+QB_NAME(dept10_vw_qb) */ emp_no, ename,job_code from emp where dept_no=10;
+View created.
+
+
+select /*+ full(@dept10_vw_qb emp) */ emp_no, ename,job_name from dept10_vw v, jobs j where v.job_code=j.job_code;
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 2047932696
+
+----------------------------------------------------------------------------------------
+| Id  | Operation                    | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT             |         |   113 |  5198 |     8  (13)| 00:00:01 |
+|   1 |  MERGE JOIN                  |         |   113 |  5198 |     8  (13)| 00:00:01 |
+|   2 |   TABLE ACCESS BY INDEX ROWID| JOBS    |    23 |   414 |     2   (0)| 00:00:01 |
+|   3 |    INDEX FULL SCAN           | JOBS_PK |    23 |       |     1   (0)| 00:00:01 |
+|*  4 |   SORT JOIN                  |         |   113 |  3164 |     6  (17)| 00:00:01 |
+|*  5 |    TABLE ACCESS FULL         | EMP     |   113 |  3164 |     5   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - access("JOB_CODE"="J"."JOB_CODE")
+       filter("JOB_CODE"="J"."JOB_CODE")
+   5 - filter("DEPT_NO"=10)
+
+Note- Full table scan as been used for emp table inside the view.
