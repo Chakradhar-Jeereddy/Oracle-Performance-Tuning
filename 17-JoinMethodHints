@@ -1,0 +1,204 @@
+Join method hints  
+
+a) USE_NL - Influences optimizer to join the specified tables with other row sources using nested loop.
+            syntax - /* USE_NL(table_list)*/
+			Note - the table in the hint should be inner table otherwise the hint will be ignored.
+                   So always use leading hint to define the table as inner table.
+
+SQL> select /*+leading(d,e)*/ emp_no,ename,salary,dname from emp e, dept d where (salary between 100000 and 200000) and (d.dept_no=e.dept_no);
+
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 2125045483
+
+----------------------------------------------------------------------------------------
+| Id  | Operation                    | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT             |         |   507 | 20280 |     8  (13)| 00:00:01 |
+|   1 |  MERGE JOIN                  |         |   507 | 20280 |     8  (13)| 00:00:01 |
+|   2 |   TABLE ACCESS BY INDEX ROWID| DEPT    |     7 |    91 |     2   (0)| 00:00:01 |
+|   3 |    INDEX FULL SCAN           | DEPT_PK |     7 |       |     1   (0)| 00:00:01 |
+|*  4 |   SORT JOIN                  |         |   507 | 13689 |     6  (17)| 00:00:01 |
+|*  5 |    TABLE ACCESS FULL         | EMP     |   507 | 13689 |     5   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - access("D"."DEPT_NO"="E"."DEPT_NO")
+       filter("D"."DEPT_NO"="E"."DEPT_NO")
+   5 - filter("SALARY">=100000 AND "SALARY"<=200000)
+
+
+Note -The above query used sort merge join.
+
+select /*+leading(d,e) use_nl(e) */  emp_no,ename,salary,dname from emp e, dept d where (salary between 100000 and 200000) and (d.dept_no=e.dept_no);
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 1755577125
+
+----------------------------------------------------------------------------------------
+| Id  | Operation                    | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT             |         |   507 | 20280 |    54   (0)| 00:00:01 |
+|   1 |  NESTED LOOPS                |         |   507 | 20280 |    54   (0)| 00:00:01 |
+|   2 |   NESTED LOOPS               |         |  1029 | 20280 |    54   (0)| 00:00:01 |
+|   3 |    TABLE ACCESS FULL         | DEPT    |     7 |    91 |    35   (0)| 00:00:01 |
+|*  4 |    INDEX RANGE SCAN          | DEPT_IX |   147 |       |     1   (0)| 00:00:01 |
+|*  5 |   TABLE ACCESS BY INDEX ROWID| EMP     |    72 |  1944 |     3   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - access("D"."DEPT_NO"="E"."DEPT_NO")
+   5 - filter("SALARY">=100000 AND "SALARY"<=200000)
+
+Note - The hint use_nl changed the join to nested loops but we also had to mention leading hint to define inner table.
+       Below query will ignore the nested loops hint as dept table is not an inner table.
+
+select /*+leading(d,e) use_nl(d) */  emp_no,ename,salary,dname from emp e, dept d where (salary between 100000 and 200000) and (d.dept_no=e.dept_no);
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 2125045483
+
+----------------------------------------------------------------------------------------
+| Id  | Operation                    | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT             |         |   507 | 20280 |     8  (13)| 00:00:01 |
+|   1 |  MERGE JOIN                  |         |   507 | 20280 |     8  (13)| 00:00:01 |
+|   2 |   TABLE ACCESS BY INDEX ROWID| DEPT    |     7 |    91 |     2   (0)| 00:00:01 |
+|   3 |    INDEX FULL SCAN           | DEPT_PK |     7 |       |     1   (0)| 00:00:01 |
+|*  4 |   SORT JOIN                  |         |   507 | 13689 |     6  (17)| 00:00:01 |
+|*  5 |    TABLE ACCESS FULL         | EMP     |   507 | 13689 |     5   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - access("D"."DEPT_NO"="E"."DEPT_NO")
+       filter("D"."DEPT_NO"="E"."DEPT_NO")
+   5 - filter("SALARY">=100000 AND "SALARY"<=200000)
+	   
+     
+     
+	   
+b) USE_HASH - Instructs the optimizer to join the specified tables with other row sources using hash joins.
+ 
+   Usage syntax - /* use_hash(table_list)*/
+   Same as nested loop if the table is not inner table the hint is ignored
+   It is recommended to use ordered or leading hints with it
+
+select /*+leading(d,e) use_hash(d) */  emp_no,ename,salary,dname from emp e, dept d where (salary between 100000 and 200000) and (d.dept_no=e.dept_no);
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 2125045483
+
+----------------------------------------------------------------------------------------
+| Id  | Operation                    | Name    | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT             |         |   507 | 20280 |     8  (13)| 00:00:01 |
+|   1 |  MERGE JOIN                  |         |   507 | 20280 |     8  (13)| 00:00:01 |
+|   2 |   TABLE ACCESS BY INDEX ROWID| DEPT    |     7 |    91 |     2   (0)| 00:00:01 |
+|   3 |    INDEX FULL SCAN           | DEPT_PK |     7 |       |     1   (0)| 00:00:01 |
+|*  4 |   SORT JOIN                  |         |   507 | 13689 |     6  (17)| 00:00:01 |
+|*  5 |    TABLE ACCESS FULL         | EMP     |   507 | 13689 |     5   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - access("D"."DEPT_NO"="E"."DEPT_NO")
+       filter("D"."DEPT_NO"="E"."DEPT_NO")
+   5 - filter("SALARY">=100000 AND "SALARY"<=200000)
+
+Hint Report (identified by operation id / Query Block Name / Object Alias):
+Total hints for statement: 1 (U - Unused (1))
+---------------------------------------------------------------------------
+
+   2 -  SEL$1 / D@SEL$1
+         U -  use_hash(d)
+
+SQL> select /*+leading(d,e) use_hash(e) */  emp_no,ename,salary,dname from emp e, dept d where (salary between 100000 and 200000) and (d.dept_no=e.dept_no);
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 615168685
+
+---------------------------------------------------------------------------
+| Id  | Operation          | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------
+|   0 | SELECT STATEMENT   |      |   507 | 20280 |    40   (0)| 00:00:01 |
+|*  1 |  HASH JOIN         |      |   507 | 20280 |    40   (0)| 00:00:01 |
+|   2 |   TABLE ACCESS FULL| DEPT |     7 |    91 |    35   (0)| 00:00:01 |
+|*  3 |   TABLE ACCESS FULL| EMP  |   507 | 13689 |     5   (0)| 00:00:01 |
+---------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - access("D"."DEPT_NO"="E"."DEPT_NO")
+   3 - filter("SALARY">=100000 AND "SALARY"<=200000)
+
+Note - One of the above queries ignored the hash join becuase the table inside the hint was not the inner table.
+
+
+
+c) USE_MERGE- Same join order rules as nested and hash join hints apply.
+              Syntax - /*use_merge(table_name_list)*/
+			  Used for onsorted tables, the sorted table will be kept in SGA and pre-sorted table will be saved in PGA.
+			  
+select /*+leading(e,d) use_merge(e)  */  emp_no,ename,salary,dname from emp e, dept d where (salary between 100000 and 200000) and (d.dept_no=e.dept_no);
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 1123238657
+
+---------------------------------------------------------------------------
+| Id  | Operation          | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------
+|   0 | SELECT STATEMENT   |      |   507 | 20280 |    40   (0)| 00:00:01 |
+|*  1 |  HASH JOIN         |      |   507 | 20280 |    40   (0)| 00:00:01 |
+|*  2 |   TABLE ACCESS FULL| EMP  |   507 | 13689 |     5   (0)| 00:00:01 |
+|   3 |   TABLE ACCESS FULL| DEPT |     7 |    91 |    35   (0)| 00:00:01 |
+---------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - access("D"."DEPT_NO"="E"."DEPT_NO")
+   2 - filter("SALARY">=100000 AND "SALARY"<=200000)
+
+Hint Report (identified by operation id / Query Block Name / Object Alias):
+Total hints for statement: 1 (U - Unused (1))
+---------------------------------------------------------------------------
+
+   2 -  SEL$1 / E@SEL$1
+         U -  use_merge(e)
+
+Note
+-----
+   - this is an adaptive plan
+
+SQL> select /*+leading(e,d) use_merge(d)  */  emp_no,ename,salary,dname from emp e, dept d where (salary between 100000 and 200000) and (d.dept_no=e.dept_no);
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 3406566467
+
+----------------------------------------------------------------------------
+| Id  | Operation           | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------
+|   0 | SELECT STATEMENT    |      |   507 | 20280 |    42   (5)| 00:00:01 |
+|   1 |  MERGE JOIN         |      |   507 | 20280 |    42   (5)| 00:00:01 |
+|   2 |   SORT JOIN         |      |   507 | 13689 |     6  (17)| 00:00:01 |
+|*  3 |    TABLE ACCESS FULL| EMP  |   507 | 13689 |     5   (0)| 00:00:01 |
+|*  4 |   SORT JOIN         |      |     7 |    91 |    36   (3)| 00:00:01 |
+|   5 |    TABLE ACCESS FULL| DEPT |     7 |    91 |    35   (0)| 00:00:01 |
+----------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   3 - filter("SALARY">=100000 AND "SALARY"<=200000)
+   4 - access("D"."DEPT_NO"="E"."DEPT_NO")
+       filter("D"."DEPT_NO"="E"."DEPT_NO")
+
+Note- One of the above query ignores the merge join as the table inside the hint is not inner table.
