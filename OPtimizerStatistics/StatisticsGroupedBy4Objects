@@ -23,10 +23,13 @@ number of leaf blocks                  leaf_blocks
 number of branches                     blevel
 index clustering factor                clustering_factor
 
+Index structure 
+Root Block -> 3 Brach blocks -> 3 leaf blocks
+A-Z		   A-F,G-P,Q-Z       Each block attached to one branch
+
 system statistics
 CPU performance and utilizations
 I/O performance and utilizations
-
 
 The optimizer relies on the statistics to decide on the optimal execution plan.
 If the statistics are unavailable,insufficent or not representitive suboptimal execution plan may be picked.
