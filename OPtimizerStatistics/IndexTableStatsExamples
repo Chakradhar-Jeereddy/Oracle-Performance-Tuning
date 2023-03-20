@@ -1,0 +1,224 @@
+--check stats of EMP table
+SELECT NUM_ROWS, BLOCKS, LAST_ANALYZED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='EMP';
+
+  NUM_ROWS     BLOCKS LAST_ANAL
+---------- ---------- ---------
+       879         11 11-MAR-23
+
+--Create table using CTAS, stats are automatically gathered during bulk load
+CREATE TABLE SOE.EMP2 NOLOGGING AS SELECT * FROM SOE.EMP;
+SELECT NUM_ROWS, BLOCKS, LAST_ANALYZED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='EMP2';
+
+  NUM_ROWS     BLOCKS LAST_ANAL
+---------- ---------- ---------
+       879         11 20-MAR-23
+
+--To skip basic stats collection during CTAS use the hint no_gather_optimizer_statistics
+CREATE /*+NO_GATHER_OPTIMIZER_STATISTICS*/ TABLE SOE.EMP3 NOLOGGING AS SELECT * FROM SOE.EMP;
+SELECT NUM_ROWS, BLOCKS, LAST_ANALYZED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='EMP3';
+  NUM_ROWS     BLOCKS LAST_ANAL
+---------- ---------- ---------
+
+DROP TABLE SOE.EMP2;
+DROP TABLE SOE.EMP3;
+
+--When table gets created with normal DDL, the stats will not get created.
+CREATE TABLE SOE.EMP2( EMP_NO NUMBER(4), ENAME VARCHAR2(20),HIRE_DATE DATE, DEPT_NO NUMBER(2),JOB_CODE CHAR(4), SALARY NUMBER(8,2),MGR_ID NUMBER(4), 
+TERMINATED CHAR(1), NOTES VARCHAR2(1000));  
+SELECT NUM_ROWS, BLOCKS, LAST_ANALYZED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='EMP2';
+  NUM_ROWS     BLOCKS LAST_ANAL
+---------- ---------- ---------
+
+--Check the plan of below query which collects the stats on the fly as no stats exists for the table.
+SET LINESIZE 180
+SET AUTOT TRACE EXP
+SELECT * FROM SOE.EMP2 WHERE EMP_NO=641;
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 2941272003
+
+--------------------------------------------------------------------------
+| Id  | Operation         | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |      |     1 |   584 |     2   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS FULL| EMP2 |     1 |   584 |     2   (0)| 00:00:01 |
+--------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter("EMP_NO"=641)
+
+Note
+-----
+   - dynamic statistics used: dynamic sampling (level=2)
+
+--If we insert the rows using conventional path, still the stats will not be gathered unless we use direct path insert.
+INSERT INTO SOE.EMP2 SELECT * FROM SOE.EMP;
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 3956160932
+
+---------------------------------------------------------------------------------
+| Id  | Operation                | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------------
+|   0 | INSERT STATEMENT         |      |   879 | 40434 |     5   (0)| 00:00:01 |
+|   1 |  LOAD TABLE CONVENTIONAL | EMP2 |       |       |            |          |
+|   2 |   TABLE ACCESS FULL      | EMP  |   879 | 40434 |     5   (0)| 00:00:01 |
+---------------------------------------------------------------------------------
+commit;
+
+--See the stats are still empty for the table.
+SET AUTOT OFF
+SELECT NUM_ROWS, BLOCKS, LAST_ANALYZED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='EMP2';
+  NUM_ROWS     BLOCKS LAST_ANAL
+---------- ---------- ---------
+
+--Lets create index on the table
+CREATE UNIQUE INDEX SOE.EMP2_EMPNO_UQ ON SOE.EMP2(EMP_NO) NOLOGGING TABLESPACE SOETBS;
+
+--Now we see the stats for the index collected during its creation.
+SELECT BLEVEL, LEAF_BLOCKS AS "LEAFBLK", DISTINCT_KEYS AS "DIST_KEY", AVG_LEAF_BLOCKS_PER_KEY AS "LEAFBLK_PER_KEY",AVG_DATA_BLOCKS_PER_KEY AS "DATABLK_PER_KEY"
+FROM DBA_IND_STATISTICS WHERE OWNER = 'SOE' AND INDEX_NAME = 'EMP2_EMPNO_UQ'; 
+BLEVEL LEAFBLK DIST_KEY LEAFBLK_PER_KEY DATABLK_PER_KEY
+------ ------- -------- --------------- ---------------
+     1       2      879               1               1
+
+--But the table statistics still not collected.
+SELECT NUM_ROWS, BLOCKS, LAST_ANALYZED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='EMP2';
+  NUM_ROWS     BLOCKS LAST_ANAL
+---------- ---------- ---------
+
+--See if the query picks the index, it does pick the index whose stats are upto date.
+SET LINESIZE 180
+SET AUTOT TRACE EXP
+SELECT * FROM SOE.EMP2 WHERE EMP_NO=641;SQL> SQL>
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 772949711
+
+---------------------------------------------------------------------------------------------
+| Id  | Operation                   | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT            |               |     1 |   584 |     1   (0)| 00:00:01 |
+|   1 |  TABLE ACCESS BY INDEX ROWID| EMP2          |     1 |   584 |     1   (0)| 00:00:01 |
+|*  2 |   INDEX UNIQUE SCAN         | EMP2_EMPNO_UQ |     1 |       |     1   (0)| 00:00:01 |
+---------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("EMP_NO"=641)
+
+--Now lets gather the stats for the table
+exec DBMS_STATS.GATHER_TABLE_STATS('SOE','EMP2');
+set autot off
+SELECT NUM_ROWS, BLOCKS, LAST_ANALYZED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='EMP2';
+  NUM_ROWS     BLOCKS LAST_ANAL
+---------- ---------- ---------
+       879        124 20-MAR-23
+DROP TABLE SOE.EMP2;
+
+--Lets work on index and clustering factor
+conn soe/soe
+DROP INDEX DEPT_IX;
+DROP INDEX I1;
+CREATE INDEX EMP_DEPTNO_IX ON EMP(DEPT_NO);
+CREATE INDEX EMP_ENAME_IX ON EMP(ENAME);
+
+--Notice that stats automtically collected for indexes at the time of creation.
+col INDEX_NAME format a15
+col BLEVEL format 99
+col LEAFBLK format 99
+col DIST_KEY format 9999
+col LEAFBLK_PER_KEY format 99
+col DATABLK_PER_KEY format 99
+SELECT INDEX_NAME, BLEVEL, LEAF_BLOCKS AS "LEAFBLK",
+DISTINCT_KEYS AS "DIST_KEY", AVG_LEAF_BLOCKS_PER_KEY AS "LEAFBLK_PER_KEY",
+AVG_DATA_BLOCKS_PER_KEY AS "DATABLK_PER_KEY"
+FROM USER_INDEXES
+WHERE INDEX_NAME IN ('EMP_DEPTNO_IX','EMP_ENAME_IX');SQL> SQL> SQL> SQL> SQL> SQL>   2    3    4    5
+
+INDEX_NAME      BLEVEL LEAFBLK DIST_KEY LEAFBLK_PER_KEY DATABLK_PER_KEY
+--------------- ------ ------- -------- --------------- ---------------
+EMP_DEPTNO_IX        1       2        6               1               1
+EMP_ENAME_IX         1       4      879               1               1
+
+--Drop the created indexes
+DROP INDEX EMP_ENAME_IX;
+DROP INDEX EMP_DEPTNO_IX;
+
+--Create index on ename and check clustering factor of index.
+CREATE INDEX SOE.EMP_ENAME_IX ON SOE.EMP(ENAME);
+SELECT BLEVEL, LEAF_BLOCKS, CLUSTERING_FACTOR FROM DBA_INDEXES WHERE OWNER='SOE' AND TABLE_NAME='EMP' AND INDEX_NAME= 'EMP_ENAME_IX'; 
+BLEVEL LEAF_BLOCKS CLUSTERING_FACTOR
+------ ----------- -----------------
+     1           4               741
+--Notice that clustering factor of index is high becuase the index is well ordered but the rows of the table not well ordereded by ename.
+
+--Lets create a new table and order it by ename and create an index on it.
+CREATE TABLE SOE.EMP2 NOLOGGING AS SELECT * FROM SOE.EMP ORDER BY ENAME;
+CREATE INDEX SOE.EMP2_ENAME_IX ON SOE.EMP2(ENAME);
+SELECT BLEVEL, LEAF_BLOCKS, CLUSTERING_FACTOR FROM DBA_INDEXES WHERE OWNER='SOE' AND TABLE_NAME='EMP2' AND INDEX_NAME= 'EMP_ENAME_IX'; 
+BLEVEL LEAF_BLOCKS CLUSTERING_FACTOR
+------ ----------- -----------------
+     1           4               7
+--Notice that the factor is low because the index is well ordereded in comparison with rows ordered in table by ename.
+
+--Lets check the query plan on table EMP and EMP2 to see which one picks the index
+SET AUTOT TRACE EXP
+SELECT * FROM SOE.EMP WHERE ENAME BETWEEN 'AOZLA PACUS' AND 'BAFD PZLCL';SQL>
+
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 3956160932
+
+--------------------------------------------------------------------------
+| Id  | Operation         | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |      |    14 |   644 |     5   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS FULL| EMP  |    14 |   644 |     5   (0)| 00:00:01 |
+--------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter("ENAME"<='BAFD PZLCL' AND "ENAME">='AOZLA PACUS')
+   
+  SET AUTOT TRACE EXP
+SELECT * FROM SOE.EMP2 WHERE ENAME BETWEEN 'AOZLA PACUS' AND 'BAFD PZLCL';SQL>
+
+Execution Plan
+----------------------------------------------------------
+Plan hash value: 2809363203
+
+-----------------------------------------------------------------------------------------------------
+| Id  | Operation                           | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                    |               |    35 |  1610 |     3   (0)| 00:00:01 |
+|   1 |  TABLE ACCESS BY INDEX ROWID BATCHED| EMP2          |    35 |  1610 |     3   (0)| 00:00:01 |
+|*  2 |   INDEX RANGE SCAN                  | EMP2_ENAME_IX |    35 |       |     2   (0)| 00:00:01 |
+-----------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("ENAME">='AOZLA PACUS' AND "ENAME"<='BAFD PZLCL')
+
+--Notice that the index on table emp2 was selected becuase its clustering factor is low.
+--The selection on index by optimizer is based on selectivity*clustering factor.
+
+DROP TABLE SOE.EMP2;
+DROP INDEX SOE.EMP_ENAME_IX;
+
+
+
+
+
+
+
+ 
+
+
+
+
