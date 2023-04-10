@@ -1,0 +1,177 @@
+--Optimizer Statistics preferences level
+
+--The SET_*_PREFS procedures allow you to change the default values of the parameters used by the
+--DBMS_STATS.GATHER_*_STATS procedures for specific tables, specific schema, all the user-defined
+--objects in the database or new objects (global level). In the following steps, you will study those
+--procedures. Peferences for optimizer statistics can be set at various levels
+
+Perefence levels  Procedures           Scope      Comments
+SPECIFIC TABLE    SET_TABLE_PREFS      TABLE      
+SCHEMA            SET_SCHEMA_PREFS     SCHEMA     All tables and indexes of schema
+DATABASE          SET_DATABASE_PREFS   DATABASE   All tables and indexes in database
+GLOBAL            SET_GLOBAL_PREFS     GLOBAL     Also tables created in future
+
+--EXAMPLES OF PREFS
+exec dbms_stats.set_schema_prefs('SOE','ESTIMATE_PERCENT','10')
+exec dbms_stats.set_TABLE_prefs('SOE','EMP','CASCADE','FALSE')
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'ESTIMATE_PERCENT',OWNNAME=>'SOE', TABNAME=>'EMP') FROM DUAL;
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'ESTIMATE_PERCENT',OWNNAME=>'SOE') FROM DUAL;
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'CASCADE',OWNNAME=>'SOE', TABNAME=>'EMP') FROM DUAL;
+
+--Available Preference 
+APPROXIMATE_NDV_ALGORITHM
+AUTO_STAT_EXTENSIONS
+AUTOSTATS_TARGET
+CASCADE
+CONCURRENT
+DEGREE
+ESTIMATE_PERCENT
+GLOBAL_TEMP_TABLE_STATS
+GRANULARITY
+INCREMENTAL
+INCREMENTAL_LEVEL
+INCREMENTAL_STALENESS
+METHOD_OPT
+NO_INVALIDATE
+OPTIONS
+PREFERENCE_OVERRIDES_PARAMETER
+PUBLISH
+STALE_PERCENT
+STAT_CATEGORY
+TABLE_CACHED_BLOCKS
+WAIT_TIME_TO_UPDATE_STATS
+
+--PREFERENCE_OVERRIDES_PARAMETER
+--If the statistics preference ESTIMATE_PERCENT for the table HR.EMP
+--is set to 10. What is the value of the ESTIMATE_PERCENT that takes effect when executing the following command?
+exec DBMS_STATS.GATHER_TABLE_STATS(OWNNAME=>'HR', TABNAME=>'EMP',ESTIMATE_PERCENT=>20)
+--PREFERENCE_OVERRIDES_PARAMETER controls which one takes effect
+--It takes one of two values:
+   --TRUE : ignore input parameter values, and uses the value of the corresponding preference
+   --FALSE : (default) obey input parameter values
+
+-- after running the following:
+exec DBMS_STATS.SET_SCHEMA_PREFS ( OWNNAME =>'HR',PNAME =>'ESTIMATE_PERCENT', PVALUE =>'20');
+exec DBMS_STATS.SET_TABLE_PREFS('HR','EMP','PREFERENCE_OVERRIDES_PARAMETER', 'true');
+-- the effective value of ESTIMATE_PERCENT is 20 in the following:
+exec DBMS_STATS.GATHER_TABLE_STATS(OWNNAME=>'HR', TABNAME=>'EMP',ESTIMATE_PERCENT=>10)
+
+
+--To reset a statistics preference parameter to its global value, set the PVALUE to NULL in the SET_*_PREFS procedures:
+exec DBMS_STATS.SET_SCHEMA_PREFS ( OWNNAME =>'SOE', PNAME =>'ESTIMATE_PERCENT', PVALUE =>NULL);
+--To delete specific statistics preferences at specific level, using the procedures DBMS_STATS.DELETE_*_PREFS
+exec DBMS_STATS.DELETE_SCHEMA_PREFS ( OWNNAME =>'SOE',PNAME =>'ESTIMATE_PERCENT');
+
+--Gathering Statistics Best Practices
+--Use the automatic statistics gathering
+--Well-established, manual statistics gathering procedure
+--Study whether the default statistics preferences meet your needs
+--For example, for a large table that frequently gets updated, you may need to change its STALE_PERCENT from 10 to 5:
+--Set the required behavior using the SET_*_PREFS rather than setting them in the GATHER_*_STATS
+--In Oracle 12c, leave ESTIMATE_PERCENT to its default
+
+--Summary
+--In this lecture, you should have learnt how to perform the following:
+--Set the optimizer statistics preference at all the possible levels
+--Use the parameter PREFERENCE_OVERRIDES_PARAMETER
+
+
+
+--Practices
+--Verify that the global preference PREFERENCE_OVERRIDES_PARAMETER is set to FALSE
+DBMS_STATS.GET_PREFS(PNAME=>'PREFERENCE_OVERRIDES_PARAMETER')
+--------------------------------------------------------------------------------
+FALSE
+
+--Retrieve the Global value of the statistics preference parameter ESTIMATE_PERCENT
+--Because the OWNNAME and TABNAME are not provided, the function returns the global value of the preference.
+--The default value of this setting is DBMS_STATS.AUTO_SAMPLE_SIZE
+DBMS_STATS.GET_PREFS(PNAME=>'ESTIMATE_PERCENT')
+--------------------------------------------------------------------------------
+DBMS_STATS.AUTO_SAMPLE_SIZE
+
+--Retrieve the value of the same preference setting for the table SOE.ORDERS.The table default value of the preference is the same as the Global value.
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'ESTIMATE_PERCENT', OWNNAME=>'SOE',TABNAME=>'ORDERS') FROM DUAL;
+DBMS_STATS.GET_PREFS(PNAME=>'ESTIMATE_PERCENT',OWNNAME=>'SOE',TABNAME=>'ORDERS')
+--------------------------------------------------------------------------------
+DBMS_STATS.AUTO_SAMPLE_SIZE
+
+--Set the same preference to 20 at the schema SOE. This preference will apply on all existing tables owned by SOE. 
+exec DBMS_STATS.SET_SCHEMA_PREFS ( OWNNAME =>'SOE', PNAME =>'ESTIMATE_PERCENT', PVALUE =>'20')
+
+--Retrieve the value of the same setting on the tables SOE.ORDERS and SOE.CUSTOMERS, just to verify that the new setting takes effect on them.
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'ESTIMATE_PERCENT', OWNNAME=>'SOE',TABNAME=>'ORDERS') FROM DUAL;
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'ESTIMATE_PERCENT', OWNNAME=>'SOE',TABNAME=>'CUSTOMERS') FROM DUAL;
+DBMS_STATS.GET_PREFS(PNAME=>'ESTIMATE_PERCENT',OWNNAME=>'SOE',TABNAME=>'ORDERS')
+--------------------------------------------------------------------------------
+  20.000000
+
+--Set the same preference to 10 on the table SOE.ORDERS
+exec DBMS_STATS.SET_TABLE_PREFS ( OWNNAME =>'SOE', TABNAME=>'ORDERS', PNAME=>'ESTIMATE_PERCENT', PVALUE =>'10');
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'ESTIMATE_PERCENT', OWNNAME=>'SOE',TABNAME=>'ORDERS') FROM DUAL;  2
+DBMS_STATS.GET_PREFS(PNAME=>'ESTIMATE_PERCENT',OWNNAME=>'SOE',TABNAME=>'ORDERS')
+--------------------------------------------------------------------------------
+  10.000000
+
+--Create a new table on the schema and retrieve its preference value
+--The global setting is applied on the table. New objects follow the global setting.
+CREATE TABLE SOE.TEST (ANAME VARCHAR2(10));
+Table created.
+
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'ESTIMATE_PERCENT', OWNNAME=>'SOE', TABNAME=>'TEST') FROM DUAL;
+DBMS_STATS.GET_PREFS(PNAME=>'ESTIMATE_PERCENT',OWNNAME=>'SOE',TABNAME=>'TEST')
+--------------------------------------------------------------------------------
+DBMS_STATS.AUTO_SAMPLE_SIZE
+
+DROP TABLE SOE.TEST;
+Table dropped.
+
+--Set the preference at the schema level to its default.When PVALUE is assigned NULL, the global preference setting takes effect.
+--Note: optimizer statistics of specific level can be deleted using the procedure DBMS_STATS.DELETE_*_PREFS 
+exec DBMS_STATS.SET_SCHEMA_PREFS ( OWNNAME =>'SOE', PNAME =>'ESTIMATE_PERCENT',PVALUE =>NULL);
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'ESTIMATE_PERCENT', OWNNAME=>'SOE',TABNAME=>'ORDERS') FROM DUAL;
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'ESTIMATE_PERCENT', OWNNAME=>'SOE',TABNAME=>'CUSTOMERS') FROM DUAL;
+DBMS_STATS.GET_PREFS(PNAME=>'ESTIMATE_PERCENT',OWNNAME=>'SOE',TABNAME=>'ORDERS')
+--------------------------------------------------------------------------------
+DBMS_STATS.AUTO_SAMPLE_SIZE
+
+--Using the Preference PREFERENCE_OVERRIDES_PARAMETER
+--In the following steps, you will study the impact of setting the parameter PREFERENCE_OVERRIDES_PARAMETER on setting the optimizer statistics preferences
+--Note: this is not an initialization parameter. It is a DBMS_STATS configuration parameter.
+--Obtain the current value of PREFERENCE_OVERRIDES_PARAMETER at the global level
+SELECT DBMS_STATS.GET_PREFS (PNAME =>'PREFERENCE_OVERRIDES_PARAMETER') FROM DUAL;
+
+--Create a testing table, fill it with data, and gather its statistics using sample size of 10 percent
+CREATE TABLE SOE.ORDERS2 ( ORDER_ID NUMBER(12), ORDER_DATE TIMESTAMP(6) WITH LOCAL TIME ZONE, ORDER_TOTAL NUMBER(8,2));
+INSERT INTO SOE.ORDERS2 SELECT ORDER_ID, ORDER_DATE, ORDER_TOTAL FROM SOE.ORDERS;
+COMMIT;
+EXEC DBMS_STATS.GATHER_TABLE_STATS(OWNNAME=>'SOE', TABNAME=>'ORDERS2', ESTIMATE_PERCENT=>10);
+SELECT SAMPLE_SIZE/NUM_ROWS*100 PERCENT_SAMPLE_USED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='ORDERS2';
+PERCENT_SAMPLE_USED
+-------------------
+                100
+				
+				
+--Set the parameter PREFERENCE_OVERRIDES_PARAMETER to TRUE at the global level.
+exec DBMS_STATS.SET_GLOBAL_PREFS ( PNAME =>'PREFERENCE_OVERRIDES_PARAMETER',PVALUE=>'TRUE');
+--Create the testing table again and gather its statistics using sample size of 10 percent.
+
+CREATE TABLE SOE.ORDERS2 ( ORDER_ID NUMBER(12), ORDER_DATE TIMESTAMP(6) WITH LOCAL TIME ZONE, ORDER_TOTAL NUMBER(8,2));
+INSERT INTO SOE.ORDERS2 SELECT ORDER_ID, ORDER_DATE, ORDER_TOTAL FROM SOE.ORDERS;
+COMMIT;
+EXEC DBMS_STATS.GATHER_TABLE_STATS(OWNNAME=>'SOE', TABNAME=>'ORDERS2', ESTIMATE_PERCENT=>10);
+SELECT SAMPLE_SIZE/NUM_ROWS*100 PERCENT_SAMPLE_USED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='ORDERS2';  2
+PERCENT_SAMPLE_USED
+-------------------
+                100
+DROP TABLE SOE.ORDERS2;
+
+--Set the parameter PREFERENCE_OVERRIDES_PARAMETER back to FALSE.
+exec DBMS_STATS.SET_GLOBAL_PREFS ( PNAME =>'PREFERENCE_OVERRIDES_PARAMETER',PVALUE=>'FALSE');
+PL/SQL procedure successfully completed.
+
+--Summary
+--SET_*_PREFS procedures allow you to change the default values of the parameters used by the DBMS_STATS.GATHER_*_STATS procedures 
+--for specific tables, specific schema, all the userdefined objects in the database or new objects (global level). 
+--The parameter PREFERENCE_OVERRIDES_PARAMETER can be used to apply a policy at the schema level or at the database level 
+  to allow or disallow the users from setting their own statistics gathering preferences.
