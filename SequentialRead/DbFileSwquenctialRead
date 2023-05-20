@@ -1,0 +1,19 @@
+Ensure AVERAGE_WAIT is not high.
+select * from v$system_event where event = 'db file sequential read';
+
+Obtain SQL statement associated with this event
+
+select a.sid, a.serial#, a.username, a.osuser, b.sql_text
+from   v$session a, v$sqltext b
+where  a.sql_hash_value = b.hash_value
+and    a.sql_address    = b.address
+and    a.sid in (select sid
+                 from   v$session_wait
+                 where  event = 'db file sequential read')
+order by a.sid, b.hash_value, b.piece;
+
+Find the object causing the event.
+select segment_name, partition_name, segment_type, tablespace_name
+from   dba_extents a, v$session_wait b where  b.p2 between a.block_id and (a.block_id + a.blocks - 1)
+and    a.file_id  = b.p1 and    b.event    = 'db file sequential read';
+
