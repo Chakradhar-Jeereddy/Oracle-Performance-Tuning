@@ -1,3 +1,4 @@
+Note - Global has partition indexes reduce buffer busy waits and hot blocks.
 select object_name,subobject_name,value from v$segment_statistics where owner='ADAM' and statistics_name='buffer busy waits' and object_name ='I';
 
 Note - The cause for buffer busy waits of index is becuase two many concurrent sessions trying to read leaf blocks into buffers. To reduce the contention
