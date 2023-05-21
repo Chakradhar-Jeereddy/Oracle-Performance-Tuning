@@ -2,4 +2,4 @@ set lines 300
 col plan_name for a35
 col created for a40
 col creator for a10
-select b.sql_handle,b.plan_name,b.enabled,b.fixed,b.accepted,b.creator,b.created from dba_sql_plan_baseline b,v$sql s where s.sql_id='&sql_id' and s.exact_matching_signature=b.signature;
+select b.sql_handle,b.plan_name,b.enabled,b.fixed,b.accepted,b.creator,b.created from dba_sql_plan_baselines b,v$sql s where s.sql_id='&sql_id' and s.exact_matching_signature=b.signature;
