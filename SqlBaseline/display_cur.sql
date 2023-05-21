@@ -1,16 +1,4 @@
-REM $Header: 215187.1 display_cur.sql 12.1.02 2013/09/09 carlos.sierra mauro.pagano $
-
-ACC sql_text_piece PROMPT 'Enter SQL Text piece: '
-
 SET PAGES 200 LONG 80000 ECHO ON;
-
-COL sql_text PRI;
-
-SELECT sql_id, sql_text /* exclude_me */
-  FROM v$sqlarea
- WHERE sql_text LIKE '%&&sql_text_piece.%'
-   AND sql_text NOT LIKE '%/* exclude_me */%';
-
 ACC sql_id PROMPT 'Enter SQL_ID: ';
 
 SELECT plan_hash_value, SUM(executions) executions, SUM(elapsed_time) elapsed_time, /* exclude_me */
@@ -53,7 +41,7 @@ COL sql_fulltext PRI;
 SET PAGES 2000 LIN 300 TRIMS ON ECHO ON FEED OFF HEA OFF;
 
 SELECT * /* exclude_me */
-FROM TABLE(DBMS_XPLAN.display_cursor('&&sql_id.', TO_NUMBER('&&child_number.'), 'ADVANCED'));
+FROM TABLE(DBMS_XPLAN.display_cursor('&&sql_id.', TO_NUMBER('&&child_number.'), 'TYPICAL'));
 
 SPO OFF;
 
