@@ -13,7 +13,7 @@ nvl(executions_delta,0) execs,
 (elapsed_time_delta/decode(nvl(executions_delta,0),0,1,executions_delta))/1000000 avg_etime,
 (buffer_gets_delta/decode(nvl(buffer_gets_delta,0),0,1,executions_delta)) avg_lreads
 from dba_hist_sqlstat s,dba_hist_snapshot ss
-where sql_id = '&1'
+where sql_id = '&sql_id'
 and ss.snap_id=s.snap_id
 and ss.instance_number=s.instance_number
 and executions_delta >0 order by 1,2,3;
