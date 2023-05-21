@@ -1,7 +1,9 @@
 SET PAGES 200 LONG 80000 ECHO ON;
 ACC sql_handle PROMPT 'Enter SQL Handle: ';
 SPO &&sql_handle._spb.txt;
-
+set lines 300
+col creator for a20
+col plan_name for a30
 SELECT sql_handle, signature,creator
   FROM dba_sql_plan_baselines
  WHERE sql_handle = '&&sql_handle.'
@@ -19,20 +21,13 @@ SET NUM 20;
 
 SELECT signature, /* exclude_me */
        plan_name,
-       creator,
        origin,
        parsing_schema_name,
-       description,
        version,
        created,
        last_modified,
        last_executed,
        last_verified,
-       enabled,
-       accepted,
-       fixed,
-       reproduced,
-       autopurge,
        optimizer_cost,
        module,
        action,
@@ -44,8 +39,7 @@ SELECT signature, /* exclude_me */
        direct_writes,
        rows_processed,
        fetches,
-       end_of_fetch_count
-  FROM dba_sql_plan_baselines
+ FROM dba_sql_plan_baselines
  WHERE sql_handle = '&&sql_handle.'
    AND plan_name = NVL('&&plan_name.', plan_name)
  ORDER BY
