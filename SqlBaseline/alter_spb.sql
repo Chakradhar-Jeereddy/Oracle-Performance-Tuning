@@ -1,21 +1,8 @@
-REM $Header: 215187.1 alter_spb.sql 11.4.5.8 2013/05/10 carlos.sierra $
-
-ACC sql_text_piece PROMPT 'Enter SQL Text piece: '
-
 SET PAGES 200 LONG 80000 ECHO ON;
-
-COL sql_text PRI;
-
-SELECT sql_handle, plan_name, sql_text /* exclude_me */
-  FROM dba_sql_plan_baselines
- WHERE sql_text LIKE '%&&sql_text_piece.%'
-   AND sql_text NOT LIKE '%/* exclude_me */%';
-
 ACC sql_handle PROMPT 'Enter SQL Handle: ';
-
 SPO &&sql_handle._spb.txt;
 
-SELECT sql_handle, sql_text /* exclude_me */
+SELECT sql_handle, signature,creator
   FROM dba_sql_plan_baselines
  WHERE sql_handle = '&&sql_handle.'
    AND ROWNUM = 1;
