@@ -1,0 +1,5 @@
+Profile adjusts the cardinality to improve the query response time, it applies cardinality hints.
+STA is great way to find better SQL execution plans, but cardinality adjustments do not guarantee a good plan in the long term.
+The physical database schema might change (e.g adding and removing indexes)
+SQL profile can force-match SQL statements with literals.
+DBMS_SQLTUNE.ACCEPT_SQL_PROFILE(force_match>TRUE)
