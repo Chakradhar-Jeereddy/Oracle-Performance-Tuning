@@ -10,8 +10,8 @@ col node for 99999
 break on plan_hash_value on startup_time skip 1
 select ss.snap_id,ss.instance_number node, begin_interval_time,sql_id,plan_hash_value,
 nvl(executions_delta,0) execs,
-(elapsed_time_delta/decode(nvl(executions_detla,0),0,1,executions_delta))/1000000 avg_etime,
-(buffer_gets_delta/decode(nvl(buffer_gets_delt,0),0,1,executions_delta)) avg_lreads
+(elapsed_time_delta/decode(nvl(executions_delta,0),0,1,executions_delta))/1000000 avg_etime,
+(buffer_gets_delta/decode(nvl(buffer_gets_delta,0),0,1,executions_delta)) avg_lreads
 from dba_hist_sqlstat s,dba_hist_snapshot ss
 where sql_id = '&1'
 and ss.snap_id=s.snap_id
