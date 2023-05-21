@@ -25,11 +25,9 @@ SELECT p.snap_id, s.startup_time, s.begin_interval_time, s.end_interval_time, /*
        CASE WHEN p.executions_total > 0 THEN ROUND(p.elapsed_time_total/p.executions_total/1e6, 3) END avg_secs_per_exec
   FROM dba_hist_sqlstat p,
        dba_hist_snapshot s
- WHERE p.dbid = &&dbid
-   AND p.sql_id = '&&sql_id.'
+ WHERE p.sql_id = '&&sql_id.'
    AND p.plan_hash_value = TO_NUMBER('&&plan_hash_value.')
    AND s.snap_id = p.snap_id
-   AND s.dbid = p.dbid
    AND s.instance_number = p.instance_number
  ORDER BY
        p.snap_id, p.plan_hash_value;
@@ -97,4 +95,4 @@ PRINT plans;
 
 SET PAGES 14 LONG 80 ECHO OFF SERVEROUT OFF;
 
-UNDEF sql_text_piece dbid sql_id plan_hash_value begin_snap_id end_snap_id
+UNDEF sql_text_piece sql_id plan_hash_value begin_snap_id end_snap_id
