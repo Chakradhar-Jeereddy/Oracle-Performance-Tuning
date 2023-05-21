@@ -38,7 +38,7 @@ SELECT signature, /* exclude_me */
        disk_reads,
        direct_writes,
        rows_processed,
-       fetches,
+       fetches
  FROM dba_sql_plan_baselines
  WHERE sql_handle = '&&sql_handle.'
    AND plan_name = NVL('&&plan_name.', plan_name)
