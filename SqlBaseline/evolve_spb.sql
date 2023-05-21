@@ -20,7 +20,9 @@ SELECT plan_name, enabled, accepted, fixed, reproduced, created /* exclude_me */
    AND plan_name = NVL('&&plan_name.', plan_name)
  ORDER BY
        created;
-
+       
+ACC verify_par PROMPT 'Enter optional verify parameter (YES/NO): ';
+ACC commit_par PROMPT 'Enter optional commit parameter (NO/YES): '
 VAR x CLOB;
 
 BEGIN
