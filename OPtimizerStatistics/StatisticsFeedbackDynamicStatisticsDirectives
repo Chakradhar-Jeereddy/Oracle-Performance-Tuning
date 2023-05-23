@@ -71,4 +71,67 @@ Level     Description Sample                                                    
 (*) Default value
 (**) Introduced in Oracle 12c
 
+################################################################################################################
+3) Directives -
+When a directive is used by the optimizer:
+Note
+-----
+   - 1 Sql Plan Directive used for this statement
+   
+By default, directives are not used. To enable them:
+   - ALTER SESSION SET OPTIMIZER_ADAPTIVE_STATISTICS=TRUE;
+Note - It controls the usage of directives, but creation of directives takes place even when it is set to false.
+Observation: the database tend to create directives when
+   - OPTIMIZER_DYNAMIC_SAMPLING is set to 11
+
+Display directives 
+  - SELECT  FROM DBA_SQL_PLAN_DIRECTIVES d, DBA_SQL_PLAN_DIR_OBJECTS o WHERE d.DIRECTIVE_ID=o.DIRECTIVE_ID ORDER BY d.DIRECTIVE_ID,d.TYPE;
+
+Directive ID: 8866193703852068664
+Type: DYNAMIC_SAMPLING  (created by dynamic sampling)
+State: USABLE           ( will remind optimizer)
+Object Name: CUSTOMERS
+Object Type: COLUMN
+Column: CUST_LANGUAGE
+Reason: SINGLE TABLE CARDINALITY MISESTIMATE
+Last Used: Num Rows:
+Notes:
+<spd_note><internal_state>NEW</internal_state><redundant>NO</redundant>
+<spd_text>{EC(SOE.CUSTOMERS2)[CUST_LANGUAGE,
+NLS_TERRITORY]}</spd_text></spd_note>
+
+Display directives of a table
+
+---SELECT 'DIR_ID: ' || TO_CHAR(d.DIRECTIVE_ID) ||chr(10) ||
+   'Type: ' || d.TYPE||chr(10) ||
+   'State: ' || d.STATE || chr(10) ||
+   'Object Name: '|| o.OBJECT_NAME ||chr(10) ||
+   'Object Type: ' || o.OBJECT_TYPE||chr(10) ||
+   'Column: ' || o.SUBOBJECT_NAME ||chr(10) ||
+   'Reason: ' || d.REASON ||chr(10) ||
+   'Last Used: ' || d.LAST_USED ||chr(10) ||
+   'Num Rows: ' || o.NUM_ROWS ||chr(10) ||
+   'Notes: ' || d.Notes ||chr(10) DIRECTIVE
+    FROM DBA_SQL_PLAN_DIRECTIVES d, DBA_SQL_PLAN_DIR_OBJECTS o
+    WHERE d.DIRECTIVE_ID=o.DIRECTIVE_ID
+   AND o.OWNER ='SOE' and o.OBJECT_NAME = 'CUSTOMERS2'
+   ORDER BY d.DIRECTIVE_ID,d.TYPE;
+
+This is memory area(data disctionary) to store the dynamic samples and plan, so next time when optimizer runs the query,
+it tells optimizer to use the plan from directive and doesn't need to resample to data to estimate cardinality. This minimizes the processing overhead.
+Not just that, it tells dbms_stats to collect the reqired statistics while gathering stats and resolves the problem with insufficient stats.
+After problem is resoloved, the directives are marked as superceeded and dropped.
+
+Note - After directives are created, it can't be used by the query being executed, it has to be reparsed.
+
+About SQL Plan Directives
+--- A SQL plan directive is reminder to the optimizer itself to perform data sampling when column group statistics are missing
+--- Use: dynamic statistics and column group statistics
+--- They are tied to objects (not statements)
+--- When it is first created, its STATE is USABLE
+--- When it is superseded by a better directive, existing histograms, or extension statistics, its state becomes SUPERSEDED
+--- Information about them can be obtained from the DBA_SQL_PLAN_DIRECTIVES and DBA_SQL_PLAN_DIR_OBJECTS
+
+
+
 
