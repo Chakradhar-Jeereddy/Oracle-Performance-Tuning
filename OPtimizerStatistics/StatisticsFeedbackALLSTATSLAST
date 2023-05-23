@@ -1,4 +1,5 @@
 Tips 
+-- show parameter OPTIMIZER_DYNAMIC_SAMPLING
 --Note
      - statistics feedback used for this statement.
 --Note 
