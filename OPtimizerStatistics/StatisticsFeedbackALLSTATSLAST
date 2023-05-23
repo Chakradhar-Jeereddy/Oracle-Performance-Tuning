@@ -1,0 +1,73 @@
+Tips
+--Note
+     - statistics feedback used for this statement.
+--Note 
+     - dynamic statistics used: dynamic sampling(level=2) : level 2 (at least one table has no statistics)
+
+1 Examining how statistics feedback work
+If object statitics do not reflect the actual cardinality.
+During execution of query, the optimizer processes existing stats and generates a plan.
+The statistics collector compares the execution plan with actual cordinality, if there is mismatch, it still use the plan and marks it as
+is_reoptimizable=y. So next time it collects statistics on the fly, doesn't rely on object statistics and creates new plan 
+in new cursor and marks it as is_reoptimizable=n, in theory the new plan should perform better.
+
+You can know statistics feedback has been used in an execution plan when you see the following note:
+- statistics feedback used for this statement.
+
+--how to display cardinality estimate and actual cardinality in the plan.
+--Use the gather_plan_statistics hint in the query:
+select /*+ gather_plan_statistics */...from ...
+Or set the statistics_level to ALL at session level
+alter session set statistics_level='ALL';
+
+when displaying the execution plan using display_cursor, use the 'ALLSTATS LAST' option in the format parameter
+
+---SELECT * FROM table (DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));
+------------------------------------------------------------------
+| Id | Operation        | Name      | Starts | E-Rows | A-Rows
+------------------------------------------------------------------
+| 0 | SELECT STATEMENT  |           | 1      |        | 3256
+|* 1 | TABLE ACCESS FULL| CUSTOMERS | 1      | 1      | 3256
+------------------------------------------------------------------
+--The estimated rows/cardinality is far from actual rows/cardinality, due to this mismatch a new plan gets generated during next execution of 
+query.
+Note - Differnce between dynamic statistics and statistics feedback-
+
+---Advantage - 
+   Automatically improves plans for repeated queries that have cardinality misestimates
+--- Its mechanism:
+      In the first execution of a SQL statement, the optimizer produces an
+      execution plan based on the object statistics.
+      At the end of the first execution, the optimizer compares between its
+      cardinality estimates with the actual cardinality of each plan operation
+      If the cardinality discrepancy is significant, then the optimizer stores its
+      collected cardinality statistics for subsequent use and sets the
+      IS_REOPTIMIZABLE to ‘Y’
+      In the next statement execution, a new plan is produced using the collected cardinality
+
+######################################################################################################
+2) Examine how Dynamic statistics work - When stats are missing or insufficent statistics. The optimizer detects this at compilation time, where has statistics feedback
+is during execution time. 
+
+When statistics are missing the optimizer runs recursive query to get sample data and performs stats on it and creates an execution plan based on those
+statistics. When we display the plan it will show in note.
+Note- dynamic statistics used: dynamic sampling(level=2)
+
+It will be showed in statement level too:
+select /*+ DYNAMIC_sampling(s, 4) */...* from customer
+
+About OPTIMIZER_DYNAMIC_SAMPLING
+Level     Description Sample                                                                                          Size
+0         Disable dynamic statistics
+1         Table has not statistics                                                                                    32 blocks
+2 (*)     At least one table in the query has no statistics                                                           64 blocks
+3         Level 2 criteria + one or more expressions in the WHERE clause                                              64 blocks
+4         Level 2 criteria + predicate use AND/OR operators                                                           64 blocks
+5-9       Level 4 criteria                                                                                            128 to 4,086 blocks
+10        Sample all the blocks                                                                                       ALL
+11        (**) The optimizer automatically decides if dynamic statistics is needed (even if table statistics exist)   automatic
+
+(*) Default value
+(**) Introduced in Oracle 12c
+
+
