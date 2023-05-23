@@ -1,0 +1,83 @@
+1) Tracing with dbms_monitor
+--SELECT VALUE FROM V$DIAG_INFO WHERE NAME = 'Diag Trace';
+vi .bash_profile
+export TRACE_DIR=/u01/app/oracle/diag/rdbms/oradb/ORADB/trace
+
+--SHOW PARAMETER TIMED_STATISTICS;
+--SELECT SID, SERIAL# FROM V$SESSION WHERE USERNAME = '&USERNAME';
+--SELECT SID, SERIAL# FROM V$SESSION WHERE SQL_ID = '&sql_id';
+
+--Enable trace for session
+DEFINE v_sid = <sql_id>
+DEFINE v_serial = <serial#>
+BEGIN
+DBMS_MONITOR.SESSION_TRACE_ENABLE( SESSION_ID => &v_sid, SERIAL_NUM =>
+&v_serial, WAITS => TRUE, BINDS => FALSE);
+END;
+/ 
+
+---Obtain trace file
+---SELECT P.TRACEFILE
+FROM V$SESSION S
+JOIN V$PROCESS P ON S.PADDR = P.ADDR
+WHERE S.SID = &V_SID;
+
+---Run query and check trace
+SELECT * FROM EMP;
+vi <trace file>
+
+---Disable tracing
+BEGIN
+DBMS_MONITOR.SESSION_TRACE_DISABLE( SESSION_ID => &v_sid, SERIAL_NUM =>
+&v_serial);
+END;
+/ 
+###################################################################################################
+2) Tracing with SQL Trace
+---enable trace for current session
+ALTER SESSION SET SQL_TRACE=TRUE;
+(or)
+exec DBMS_SESSION.SET_SQL_TRACE(SQL_TRACE => true);
+
+---enable trace for others session
+exec DBMS_SYSTEM.SET_SQL_TRACE_IN_SESSION(SID=> 4,SERIAL#=>1235,SQL_TRACE=>TRUE)
+exec DBMS_SYSTEM.SET_SQL_TRACE_IN_SESSION(SID=> 4,SERIAL#=>1235,SQL_TRACE=>FALSE)
+
+--enable for specific statement 
+ALTER SESSION SET EVENTS 'sql_trace [sql:zq2hs0p2ettew] level 12';
+ALTER SESSION SET EVENTS 'sql_trace [sql:zq2hs0p2ettew |dgw2dg8y2rtyu] level 12';
+
+
+#################################################################################################################
+3) Tracing by enabling events 10046(extended trace) and 10053(Deep CBO traing)
+
+ALTER SESSION|SYSTEM SET EVENTS '<event number> trace name context  forever, level <level number>';
+ALTER SESSION SET EVENTS '10046 trace name context forever, level 12';
+ALTER SESSION SET EVENTS '10046 trace name context off';
+
+Events - 
+10046 Extended trace
+10053 Deep CBO tracing
+(level 1,2)
+
+Levels -
+1 Regular trace
+4 Trace bind variables
+8 Trace wait states
+12 All above
+
+Trace for other sessions.
+DBMS_SYSTEM.SET_EV( <sid> , <serial#> , 10046, 12, '')
+
+
+Tracing collects statistics, execution plans, bindvariables and environment information of the SQL statement and PL/SQL programs
+executed by one more sessions and stores into external files.
+
+These files are manually analyzed by DBA for troubleshooting and SQL tuning.
+
+If we need to trace a single session, we need sid and serial# of the session, but to trace multiple sessions need to enable tracing
+at database level, the sessions may create many trace files, to combine them into single file we use oracle supplied utility 
+trcsess.
+
+To convert the trace into human readable text file, tkprof can be used.
+
