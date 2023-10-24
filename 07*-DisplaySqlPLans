@@ -4,7 +4,7 @@ Display execution plans
 --Pros and Cons
 
 Methods:
- - Autotrace: User must be granted with plustrace role and statement needs to executed to see the plan.
+ - Autotrace: User must be granted with plustrace role and statement needs to execute to see the plan.
               Syntax - SET AUTOT[RACE] {OFF|ON|TRACE[ONLY]} [EXP[LAIN]] [STAT[ISTICS]]
 			           set autot on stat
 					   set autot on exp
@@ -64,5 +64,5 @@ Methods:
 
 -- Cons of each method
     Autotrace - Need to execute query every time, displays the plan of current session only and not the one used by optimizer
-    Explain plan - No need to execute query but it only shows the estimated plan based on stats and may not be choosen by optimizer during execution.
+    Explain plan - No need to execute query but it only shows the estimated plan based on stats and may not be chosen by optimizer during execution.
     DBMS_XPLAN - displays from AWR, cursor and previous statements from session, baselines etc.
