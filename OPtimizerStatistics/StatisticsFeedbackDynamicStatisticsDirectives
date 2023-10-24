@@ -1,14 +1,14 @@
 Tips 
 -- show parameter OPTIMIZER_DYNAMIC_SAMPLING
 --Note
-     - statistics feedback used for this statement.
+     - Statistics feedback used for this statement.
 --Note 
      - dynamic statistics used: dynamic sampling(level=2) : level 2 (at least one table has no statistics)
 
 1 Examining how statistics feedback work
-If object statitics do not reflect the actual cardinality.
+If object statistics do not reflect the actual cardinality.
 During execution of query, the optimizer processes existing stats and generates a plan.
-The statistics collector compares the execution plan with actual cordinality, if there is mismatch, it still use the plan and marks it as
+The statistics collector compares the execution plan with actual cardinality, if there is mismatch, it still use the plan and marks it as
 is_reoptimizable=y. So next time it collects statistics on the fly, doesn't rely on object statistics and creates new plan 
 in new cursor and marks it as is_reoptimizable=n, in theory the new plan should perform better.
 
@@ -21,7 +21,7 @@ select /*+ gather_plan_statistics */...from ...
 Or set the statistics_level to ALL at session level
 alter session set statistics_level='ALL';
 
-when displaying the execution plan using display_cursor, use the 'ALLSTATS LAST' option in the format parameter
+When displaying the execution plan using display_cursor, use the 'ALLSTATS LAST' option in the format parameter
 
 ---SELECT * FROM table (DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));
 ------------------------------------------------------------------
@@ -32,27 +32,27 @@ when displaying the execution plan using display_cursor, use the 'ALLSTATS LAST'
 ------------------------------------------------------------------
 --The estimated rows/cardinality is far from actual rows/cardinality, due to this mismatch a new plan gets generated during next execution of 
 query.
-Note - Differnce between dynamic statistics and statistics feedback-
+Note - Difference between dynamic statistics and statistics feedback-
 
 ---Advantage - 
    Automatically improves plans for repeated queries that have cardinality misestimates
 --- Its mechanism:
       In the first execution of a SQL statement, the optimizer produces an
-      execution plan based on the object statistics.
+      Execution plan based on the object statistics.
       At the end of the first execution, the optimizer compares between its
-      cardinality estimates with the actual cardinality of each plan operation
+      Cardinality estimates with the actual cardinality of each plan operation
       If the cardinality discrepancy is significant, then the optimizer stores its
       collected cardinality statistics for subsequent use and sets the
       IS_REOPTIMIZABLE to ‘Y’
       In the next statement execution, a new plan is produced using the collected cardinality
 
 ######################################################################################################
-2) Examine how Dynamic statistics work - When stats are missing or insufficent statistics. The optimizer detects this at compilation time, where has statistics feedback
+2) Examine how Dynamic statistics work - When stats are missing or insufficient statistics. The optimizer detects this at compilation time, where has statistics feedback
 is during execution time. 
 
 When statistics are missing the optimizer runs recursive query to get sample data and performs stats on it and creates an execution plan based on those
 statistics. When we display the plan it will show in note.
-Note- dynamic statistics used: dynamic sampling(level=2)
+Note- dynamic statistics used: dynamic sampling (level=2)
 
 It will be showed in statement level too:
 select /*+ DYNAMIC_sampling(s, 4) */...* from customer
@@ -117,10 +117,10 @@ Display directives of a table
    AND o.OWNER ='SOE' and o.OBJECT_NAME = 'CUSTOMERS2'
    ORDER BY d.DIRECTIVE_ID,d.TYPE;
 
-This is memory area(data disctionary) to store the dynamic samples and plan, so next time when optimizer runs the query,
+This is memory area (data disctionary) to store the dynamic samples and plan, so next time when optimizer runs the query,
 it tells optimizer to use the plan from directive and doesn't need to resample to data to estimate cardinality. This minimizes the processing overhead.
 Not just that, it tells dbms_stats to collect the reqired statistics while gathering stats and resolves the problem with insufficient stats.
-After problem is resoloved, the directives are marked as superceeded and dropped.
+After problem is resolved, the directives are marked as superseded and dropped.
 
 Note - After directives are created, it can't be used by the query being executed, it has to be reparsed.
 
@@ -131,7 +131,3 @@ About SQL Plan Directives
 --- When it is first created, its STATE is USABLE
 --- When it is superseded by a better directive, existing histograms, or extension statistics, its state becomes SUPERSEDED
 --- Information about them can be obtained from the DBA_SQL_PLAN_DIRECTIVES and DBA_SQL_PLAN_DIR_OBJECTS
-
-
-
-
