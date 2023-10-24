@@ -1,21 +1,21 @@
-Verious ways and techniquies to incfuence optimizer pick better execution plans
+Various ways and techniques to influence optimizer pick better execution plans
 
 --Optimizer hints
 --Modify the optimizer goal
 --Inform the optimizer about the changes on the data statistics
---Perfom specific optimizer functionality
---Perfom what-if analysis and tests on SQL statement
+--Perform specific optimizer functionality
+--Perform what-if analysis and tests on SQL statement
 --Stabilize the execution plan: a common practice is in database upgrades
 --Enable or disable an optimizer feature.
 
 --Techniques of influencing the optimizer
---Manage object statistics(using dbms_stats)
+--Manage object statistics (using dbms_stats)
 --Enabling and managing SQL profiles
---Enabling and managing SQL plan managment(SPM) (or stored outlines)
+--Enabling and managing SQL plan management(SPM) (or stored outlines)
 --Modifying initialization parameters
---Using SQL hins (in development)
+--Using SQL hints (in development)
 
-Note - SQL profile can be used to fix a plan if you historically have atleast have one optimal exection of the query.
+Note - SQL profile can be used to fix a plan if you historically have at least one optimal execution of the query.
        
  --Table and Index Access paths
 
@@ -80,8 +80,8 @@ Predicate Information (identified by operation id):
 
    1 - filter("DEPT_NO"=10)
    
-Note - In case alias nam is used for hint, we should use the alias name inside the hint otherwise
-       the hint will be ingonred by optimizer.
+Note - In case alias name is used for hint, we should use the alias name inside the hint otherwise
+       the hint will be ignored by optimizer.
 
 ---------------------------------------------------------------------------------------------------------------------
 
@@ -89,7 +89,7 @@ Note - In case alias nam is used for hint, we should use the alias name inside t
          Syntax - /*+index (table index_name_list)*/
   Usage -
          Full table scan is not considered
-		 If no index name is provided in the hint,cost of all available indexes are evaluated and 
+		 If no index name is provided in the hint, cost of all available indexes are evaluated and 
 		 uses one with lowest cost and same is the case when multiple indexes are provided.
 
 select /*+index(e DEPT_IX)*/ emp_no,ename,dept_no from emp e where emp_no between 500 and 500 and dept_no=60;
@@ -158,7 +158,7 @@ Note - In the above query the fast full scan cannot be used.
 
 ---------------------------------------------------------------------------------------------------------------
 4) INDEX_SS  - Index skip scan syntax /*+ index_ss(table index_name_list)*/
-            It is used on a composite index, when the query doesnt reference the leading column, but references some of the other index key columns.
+            It is used on a composite index, when the query doesn’t reference the leading column, but references some of the other index key columns.
 Create a composite index
 create index cust_class_email_ix on customers(customer_class, cust_email);
 select /*+index_ss(c cust_class_email_ix) */ * from customers c where cust_email like '%xyz%';
@@ -223,11 +223,11 @@ Plan hash value: 2928620147
 -----------------------------------------------------------------------------------------------------
 Optimizer modes
 
-ALL_ROWS  - Best Througput, tries to deliver entire dataset in least possible time
-            Best for patch processing and reporting application.
+ALL_ROWS  - Best Throughput, tries to deliver entire dataset in least possible time
+            Best for batch processing and reporting application.
 FIRST_ROWS(n) - Best response time, used for interactive applications.
                 Tries to deliver first n rows in least possible time.
-				Overall exection process could be longer.
+				Overall execution process could be longer.
 alter system set optimizer_mode='ALL_ROWS' or 'FIRST_ROWS_n'
 alter session set optimizer_mode='ALL_ROWS' or 'FIRST_ROWS_n'
 select /*+ALL_ROWS*/ emp_no,ename,salary,job_code from emp where HIRE_DATE <=sysdate-365;
@@ -262,7 +262,7 @@ Predicate Information (identified by operation id):
 
    1 - filter("HIRE_DATE"<=SYSDATE@!-365)
 
-Note - The first query retrived all rows, reducers the overall execution of the statement 
+Note - The first query retrieved all rows, reducers the overall execution of the statement 
        where has the second query retrived only first 2 rows in, better respose time but 
 	   overall execution time increases.
  
@@ -283,4 +283,4 @@ Predicate Information (identified by operation id):
 ---------------------------------------------------
 
    1 - filter("HIRE_DATE"<=SYSDATE@!-365)
-Note: Grouping and sorting suppress the effect of first_rows(n) hint as in the example above. 
+Note: Grouping and sorting suppress the effect of first_rows(n) hint as in the example above.
