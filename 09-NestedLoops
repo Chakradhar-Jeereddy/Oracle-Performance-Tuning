@@ -9,10 +9,10 @@ Nested loops
 
 Example - Select ename,dname from EMP E, DEPT D where e.dept_no=d.dept_no;
 
-Driving/outer table - The table that oprtimizer reads first. It is always left side table
+Driving/outer table - The table that optimizer reads first. It is always left side table
 Driven end/inner table - Right side table.
 
-Output of a join can be input to another join or it is gievn to the requestor.
+Output of a join can be input to another join or it is given to the requestor.
 
 When it comes to joining the row sources, optimizer has to decide three things about joins and use one which is least cost- 
 1) Join method 
@@ -38,12 +38,12 @@ Note - In nested loop, optimizer always uses smaller row source as outer table/d
 	                      Using the record as input, the inner table is accessed to find matching record using FTS/index scan.
 						  The matching record along with input record is stored in result set. And is ready for client before retrieving the rest of
 						  the result set. This is the major advantage of this join type. High response time for retrieving first rows of the result set.
-						  If the smaller table is used as driving table more rows can be retrived in a single fetch.
+						  If the smaller table is used as driving table more rows can be retrieved in a single fetch.
 						  
 						  
 						  
 When optimizer considers nested loop joins?
-  - Small subset of data are to be joined.
+  - Small subset of data is to be joined.
   - The optimizer mode is set to first_N_rows
   - If it is efficient method of accessing the inner table. Like of columns involved in join condition are indexed which avoids full scan.
   
@@ -63,4 +63,3 @@ SELECT EMP_NO,ENAME,DNAME FROM EMP, DEPT WHERE DEPT.DEPT_NO = EMP.DEPT_NO AND EM
 ---------------------------------------------------------
 Here the ID with bigger number and inner most one is executed first.
 The first table accessed it dept which is outer table.
-
