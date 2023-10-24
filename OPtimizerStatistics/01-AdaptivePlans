@@ -1,6 +1,6 @@
 Disadvantage of adaptive plans 
 They have mostly positive impact, but these plans could trigger investigation.
-Adaptive plans are not always sign of stale statistics. could also sign of join methods and complex predicates used.
+Adaptive plans are not always sign of stale statistics. Could also sign of join methods and complex predicates used.
 As it involves processing time at the parsing stage, we can disable it using hint or at session level.
 
 --ALTER SESSION SET OPTIMIZER_ADAPTIVE_PLANS = FALSE ;
@@ -20,18 +20,18 @@ To detect unrealistic statistics and suboptimal execution plan.
 ALTER SYSTEM SET OPTIMIZER_ADAPTIVE_PLANS = FALSE SCOPE=BOTH;
 ALTER SESSION SET OPTIMIZER_ADAPTIVE_STATISTICS = FALSE;
 
-Diference between parent cursor and child cursor
---when a statement is parsed for the first time, the parsed statement in stored in parent curos and reused.
---when the statement is executed, the execution plan,bind variables and references are stored in child cursor and be reused.
---A parrent cursor can have more than 1 child cursor, it starts with zero.
+Difference between parent cursor and child cursor
+--when a statement is parsed for the first time, the parsed statement in stored in parent cursor and reused.
+--when the statement is executed, the execution plan, bind variables and references are stored in child cursor and be reused.
+--A parent cursor can have more than 1 child cursor, it starts with zero.
 --If child cursor is set is_reoptimizable=n, this cursor is always used by query.
 
-Adaptive plan - statistic collector gather stats of inprogress sql execution when existing statistics of the object is not reflecting its actual
-cardinality. If it finds a better execution plan, it creates new child cursor and marks it as is_reoptimizable=n and previus cursos as 
-is_reoptimizable=Y, next time new cursos is used.
+Adaptive plan - statistic collector gather stats of in progress sql execution when existing statistics of the object is not reflecting its actual
+cardinality. If it finds a better execution plan, it creates new child cursor and marks it as is_reoptimizable=n and previus cursor as 
+is_reoptimizable=Y, next time new cursor is used.
 
 Adpative plan is generated when stats are stale, oracle also use this feature when join method and complex predicates are used.
-Also child cusros are created not only becuase of adaptive plans, it happens when environment variables are changed as child cursor stores env variables.
+Also child cursor is created not only because of adaptive plans, it happens when environment variables are changed as child cursor stores env variables.
 
 SELECT * FROM
 TABLE(DBMS_XPLAN.DISPLAY_CURSOR('&v_sql_id',FORMAT=>'ADAPTIVE'));
@@ -48,7 +48,7 @@ TABLE(DBMS_XPLAN.DISPLAY_CURSOR('&v_sql_id',FORMAT=>'ADAPTIVE'));
 | 7    | TABLE ACCESS BY INDEX ROWID| ORDER_ITEMS     |
 |- 8   | TABLE ACCESS FULL          | ORDER_ITEMS     |
 -----------------------------------------------------------
-- this is an adaptive plan (rows marked '-' are inactive)
+- This is an adaptive plan (rows marked '-' are inactive)
 
 Displaying the Parent and Child Cursors
 To display SQL_ID of the parent cursors for a statement, query the V$SQLAREA (or V$SQL) views
@@ -57,6 +57,3 @@ To display the cursors created for a statement, query the V$SQL
 --SELECT SQL_ID, SQL_TEXT FROM V$SQLAREA WHERE SQL_TEXT LIKE 'SELECT * FROM MY TABLE%';
 --SELECT SQL_ID, CHILD_NUMBER, PLAN_HASH_VALUE, IS_REOPTIMIZABLE IR,IS_RESOLVED_ADAPTIVE_PLAN IRAP FROM V$SQL WHERE SQL_ID='&v_sql_id' 
 ORDER BY SQL_ID, CHILD_NUMBER;
-
-
-
