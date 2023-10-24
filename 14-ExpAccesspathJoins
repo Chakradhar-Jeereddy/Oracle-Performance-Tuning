@@ -18,7 +18,7 @@ Plan hash value: 3585052864
 --The optimizer uses "Index unique scan" because only one row will be returned from the scan of
 --a unique index.
 --This access path is followed by "TABLE ACCESS BY INDEX ROWID" to retrieve the required row
---from the table based on the ROWID retrieved form the index.
+--from the table based on the ROWID retrieved from the index.
 
 SELECT * FROM WAREHOUSES WHERE WAREHOUSE_ID=10;
 Execution Plan
@@ -183,7 +183,7 @@ Plan hash value: 3095725505
 Predicate Information (identified by operation id):
 ---------------------------------------------------
 
-   1 - filter("WAREHOUSE_ID">180)
+   1 - filter ("WAREHOUSE_ID">180)
 
 Hint Report (identified by operation id / Query Block Name / Object Alias):
 Total hints for statement: 1 (U - Unused (1))
@@ -200,7 +200,7 @@ Note
 --Run the following query and observe the join used in the execution plan.
 --Nested loop has been used because a few rows (only one in this case) will be processed.
 --Note: If the Nested Loop is not used by the Optimizer with this step code, try using the hint /*+
---Can you know which table is the driving table? and Why?
+--Can you know which table is the driving table? And Why?
 
 SELECT ENAME, DNAME FROM DEPT, EMP WHERE DEPT.DEPT_NO = EMP.DEPT_NO AND DEPT.DEPT_NO=10;
 Execution Plan
@@ -224,8 +224,8 @@ Predicate Information (identified by operation id):
    5 - access("EMP"."DEPT_NO"=10)
 
 Note - Driver table is EMP and driven end table is DEPT.
-       But it will be more efficeint if we use dept as driver table becuase
-	   It has less rows to scan.
+       But it will be more efficient if we use dept as driver table because
+	   It has fewer rows to scan.
 	   
 --Following hint uses dept as driving table
 select /*+ ordered */ ENAME, DNAME FROM EMP,DEPT  WHERE DEPT.DEPT_NO = EMP.DEPT_NO AND DEPT.DEPT_NO=10;
@@ -298,8 +298,8 @@ Predicate Information (identified by operation id):
 
 Note
 -----
-   - this is an adaptive plan
-Note - Hash tablle is customers and probe table is orders
+   - This is an adaptive plan
+Note - Hash table is customers and probe table is orders
 
 
 --Run the following query and observe the used join in the execution plan.
@@ -347,3 +347,4 @@ Plan hash value: 2034389985
 |   3 |   BUFFER SORT        |      |   879 | 14064 |   237   (0)| 00:00:01 |
 |   4 |    TABLE ACCESS FULL | EMP  |   879 | 14064 |    34   (0)| 00:00:01 |
 -----------------------------------------------------------------------------
+
