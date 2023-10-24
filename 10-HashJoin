@@ -2,13 +2,13 @@ Hash Joins
 
 It is used to join larger data sets.
 The outer table, the smaller data source is saved in the memory(PGA).
-Dept table is saved in the memory becuase it is smaller data source.
+Dept table is saved in the memory because it is smaller data source.
 It applies has function to the table in memory which allows the process to know direct location of the row in hash table, no need to perform FTS or 
 index scan.
 Using the hash function input to probes the driven/inner table from buffer cache, the driven table is called probe table.
 
 How the rows are fetched and joined?
-The rows are first fetched from probe table, for each row it retrives from prob table it probs the hash table to which the rows that match the join 
+The rows are first fetched from probe table, for each row it retrieves from prob table it probs the hash table to which the rows that match the join 
 criteria and fetches it. It does that by applying hash function to the join column.
 
 How does it work?
@@ -27,7 +27,7 @@ Pros
 - Reduce latching overhead on the data blocks because the table is saved in the PGA
 
 Cons:
-- If the entire hash table do not fit in memory, then the database partitions the row sources, and the join proceeds partition by partition. 
+- If the entire hash table does not fit in memory, then the database partitions the row sources, and the join proceeds partition by partition. 
   This can consume a lot of sort area memory, and I/O to the temporary tablespace.
   
 SELECT EMP_NO,ENAME,DNAME FROM EMP, DEPT WHERE DEPT.DEPT_NO = EMP.DEPT_NO AND EMP_NO=630;
@@ -41,4 +41,4 @@ SELECT EMP_NO,ENAME,DNAME FROM EMP, DEPT WHERE DEPT.DEPT_NO = EMP.DEPT_NO AND EM
 | 4  |    INDEX UNIQUE SCAN          | EMP_PK |
 -----------------------------------------------
 
-Here EMP is the probe table and DEPT is hash table as it comes right after the EMP table.
+Here EMP is the probe table and DEPT is hash table as it comes right after the hash join.
