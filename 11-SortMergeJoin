@@ -4,14 +4,14 @@ It first sorts the data set and then joins it, sorted data is stored in PGA.
 
 If the source data set is not already sorted, It sorts the set based on the columns used in the join condition.
 
-It picks the small table for sorting, if it is already sorted  by join column by primary key, 
-it stores in buffer cashe and the other table will be sorted bases on first tables common column in PGA and stored there. 
+It picks the small table for sorting, if it is already sorted by join column by primary key, 
+it stores in buffer cache and the other table will be sorted bases on first tables common column in PGA and stored there. 
 The join first reads the small table from SGA and probes sorted table in PGA to extract matching rows and merges it.
 
 When sort merge join is used?
 The joining column is indexed in first data set.
-Better than hash join when the has table does not entirely fit in memory.
-When join condition between two tables is not an equijoin(>,<=,>=,<).
+Better than hash join when the hash table does not entirely fit in memory.
+When join condition between two tables is not an equijoin (>,<=,>=,<).
 
 Note - Hash joins only work for equijoins
 
@@ -27,4 +27,4 @@ SELECT ENAME, DNAME FROM EMP E, DEPT D WHERE E.DEPT_NO = D.DEPT_NO;
 | 2 |   TABLE ACCESS BY INDEX ROWID| DEPT     |
 | 3 |    INDEX FULL SCAN           | DEPT_PK  |  Already sorted so it goes to SGA
 | 4 | SORT JOIN                    |          |
-| 5 |   TABLE ACCESS FULL          | EMP      |  Since emp table is getting sorted it will be saved in PGA
+| 5 |   TABLE ACCESS FULL          | EMP      | Since emp table is getting sorted it will be saved in PGA
