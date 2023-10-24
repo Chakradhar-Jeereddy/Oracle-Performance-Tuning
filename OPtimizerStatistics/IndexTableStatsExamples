@@ -6,6 +6,7 @@ SELECT NUM_ROWS, BLOCKS, LAST_ANALYZED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE'
        879         11 11-MAR-23
 
 --Create table using CTAS, stats are automatically gathered during bulk load
+
 CREATE TABLE SOE.EMP2 NOLOGGING AS SELECT * FROM SOE.EMP;
 SELECT NUM_ROWS, BLOCKS, LAST_ANALYZED FROM DBA_TAB_STATISTICS WHERE OWNER='SOE' AND TABLE_NAME='EMP2';
 
@@ -213,7 +214,9 @@ DROP INDEX SOE.EMP_ENAME_IX;
 
 
 
-
+---INSERT INTO ... SELECT
+   In a similar fashion, INSERT INTO ... SELECT operations on tables with no segments using direct path can also benefit from online statistics gathering. These operations are performed using direct path if they are running in parallel, or if the APPEND hint is specified.
+   The table must have no segments (missing segment due to delayed segment creation) for this to work. A regular delete will not leave the table in the correct state to allow the online gathering of statistics to kick in.
 
 
 
