@@ -4,27 +4,27 @@ What are we trying to achieve?
 
 Selectivity:
 
--- It represents a fraction retrived rows compare to the total rows:
+-- It represents a fraction retrieved rows compare to the total rows:
    It takes values from zero to one
    0: no row is selected from row set
    1: All the rows are selected
    
 -- If one employee is selected from 100 employees from emp table the selectivity is 0.01. 1/100.
 
-Note : Selectivity is internally calculated by optimizer, it will not be displayed with the tools that display the execution plan.
+Note: Selectivity is internally calculated by optimizer, it will not be displayed with the tools that display the execution plan.
        If the query references multiple tables, there will be a selectivity value for each table in the query.
 
 Cardinality:
 
 -- Represents the number of rows returned by each operation in an execution plan.
-   If 7 employees working in department 10, the cardinality of the select operation is 7.
+   If 7 employees are working in department 10, the cardinality of the select operation is 7.
    Cardinality is displayed in execution plan under Rows column.
    
    
 -- How optimizer used selectivity and cardinality?
    For low selectivity operation, accessing the index is more efficient
-   For high selectivity operation, accessing the table is more efficent. (Reading large portion of index followed by required portion by table)
-   If stats are not updated or not available, it leads to misestimation of cardinality which lead to suboptimal plan.
+   For high selectivity operation, accessing the table is more efficient. (Reading large portion of index followed by required portion by table)
+   If stats are not updated or not available, it leads to misestimating of cardinality which lead to suboptimal plan.
    
    
-Note - Selectivity is a relative number(faction) and cardinality is an obsolete number(no faction).
+Note - Selectivity is a relative number (faction) and cardinality is an obsolete number (no faction).
