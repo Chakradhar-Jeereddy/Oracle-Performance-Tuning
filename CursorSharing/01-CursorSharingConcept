@@ -1,0 +1,205 @@
+Cursor sharing parameter shouldn't be considered as a solution for badly written applications.
+
+Cursor sharing parameter -
+alter system set cursor_sharing=EXACT/FORCE;
+alter session set cursor_sharing=EXACT/FORCE;
+
+Note - when force is used, it replaces the literals with system generated bind variables. The SQL is stored in v$sqlarea.
+       but force value as side effects, it should be tested before applying in prod. Sometimes it doesn't generate the variables to replace
+       literals.
+select sum(salary) from emp where dept_no=:"sys_B_0"
+
+When multiple client connect and issues SQL statments which are same.
+Same - Character by charector, space between keywords, objects referenced and literals.
+--In the obove case, all client sessions use same parent/child cursor (stored in shared SQL area of library cache) to excute the query.
+
+Case 1 - All sessions issue same query 
+         In this case all sessions use its own PGA, but same cursor and execution plan.
+Case   - Each session issue different query
+         In this case all sessions use its own PGA, and CPU to generate execution plans and cursors.(hard parsing).
+
+Example  - 
+select sum(salary) from hr.employees where dept_no=101;
+- Each statement with different literals has its own cursor, more memory is consumed, shared pool latches and hard parses.
+
+Example - 
+select sum(salary) from hr.employees where dept_no=:v_dept_no;
+ - The cursor is shared among the client sessions
+ - Better resource utilization, scalable, less shared pool latches
+ - May lead to suboptimal plans for some bind variable values
+
+Testing 
+
+---create table t1 (pk number,data char(50));
+---insert into t1 select case when rownum<20 then rownum else 20 end, rownum from dual connect by level <=500000;
+---create index ix1 on t1 (pk);
+---exec dbms_stats.gather_table_stats('','t1');
+---exec dbms_stats.gather_table_stats('','t1',method_opt=>'for all columns pk size 200');
+
+select histogram from dba_tab_col_statistics where table_name='T1' and column_name='PK';
+HISTOGRAM
+---------------
+FREQUENCY
+
+set lines 300
+set pages 300
+select endpoint_value, endpoint_number-nvl(lag(endpoint_number) over (order by endpoint_number),0) as FREQ from dba_histograms where table_name='T1' and column_name='PK' order by 1;
+
+ENDPOINT_VALUE	     FREQ
+-------------- ----------
+	     1		1
+	     2		1
+	     3		1
+	     4		1
+	     5		1
+	     6		1
+	     7		1
+	     8		1
+	     9		1
+	    10		1
+	    11		1
+	    12		1
+	    13		1
+	    14		1
+	    15		1
+	    16		1
+	    17		1
+	    18		1
+	    19		1
+	    20	   499981
+
+
+SQL>variable v01 number
+SQL>exec :v01 := 10;
+PL/SQL procedure successfully completed.
+
+select max(data) max_data, count(*) from t1 where pk=:v01;
+MAX_DATA					     COUNT(*)
+-------------------------------------------------- ----------
+10							    1
+
+SQL> select * from table(dbms_xplan.display_cursor(format => 'TYPICAL +PEEKED_BINDS'));     
+
+PLAN_TABLE_OUTPUT
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	5xztktyjqgst2, child number 0
+-------------------------------------
+select max(data) max_data, count(*) from t1 where pk=:v01
+
+Plan hash value: 2180455132
+
+---------------------------------------------------------------------------------------------
+| Id  | Operation			     | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT		     |	    |	    |	    |	  4 (100)|	    |
+|   1 |  SORT AGGREGATE 		     |	    |	  1 |	 54 |		 |	    |
+|   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| T1   |	  1 |	 54 |	  4   (0)| 00:00:01 |
+|*  3 |    INDEX RANGE SCAN		     | IX1  |	  1 |	    |	  3   (0)| 00:00:01 |
+---------------------------------------------------------------------------------------------
+
+Peeked Binds (identified by position):
+--------------------------------------
+
+   1 - :V01 (NUMBER): 10
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   3 - access("PK"=:V01)
+
+
+Parameter 
+alter session set "_optim_peek_user_binds" = true; --Default is true.
+
+
+alter session set "_optim_peek_user_binds" = false;
+SQL> select max(data) max_data, count(*) from t1 where pk=:v01;
+
+MAX_DATA					     COUNT(*)
+-------------------------------------------------- ----------
+10							    1
+
+SQL> select * from table(dbms_xplan.display_cursor(format => 'TYPICAL +PEEKED_BINDS'));
+
+PLAN_TABLE_OUTPUT
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	5xztktyjqgst2, child number 1
+-------------------------------------
+select max(data) max_data, count(*) from t1 where pk=:v01
+
+Plan hash value: 2180455132
+
+---------------------------------------------------------------------------------------------
+| Id  | Operation			          | Name | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT		          |	   |	    |	    | 255 (100)|	       |
+|   1 |  SORT AGGREGATE 		          |	   |	  1 |	 54 |		 |	       |
+|   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| T1   | 25000 | 1318K|	255  (0)| 00:00:01   |
+|*  3 |    INDEX RANGE SCAN		          | IX1  | 25000 |	    |	 51  (0)| 00:00:01   |
+---------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   3 - access("PK"=:V01)
+
+
+20 rows selected.
+
+
+alter session set "_optim_peek_user_binds" = true; (This will peek into the values of bind variables and picks the right execution plan)
+---------------------------------------------------------------------------------------------
+| Id  | Operation			          | Name | Rows  | Bytes | Cost (%CPU)| Time   |
+---------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT		          |	    |	    |	    |	  4 (100)|	      |
+|   1 |  SORT AGGREGATE 		          |	    |	  1 |	 54 |		  |	      |
+|   2 |   TABLE ACCESS BY INDEX ROWID BATCHED| T1    |	  1 |	 54 |	  4   (0)| 00:00:01 |
+|*  3 |    INDEX RANGE SCAN		          | IX1   |	  1 |	    |	  3   (0)| 00:00:01 |
+---------------------------------------------------------------------------------------------
+
+
+
+
+exec :v01 := 20;
+PL/SQL procedure successfully completed.
+
+SQL> select max(data) max_data, count(*) from t1 where pk= :v01;
+
+MAX_DATA					     COUNT(*)
+-------------------------------------------------- ----------
+99999						       499981
+
+SQL> select * from table(dbms_xplan.display_cursor(format => 'TYPICAL +PEEKED_BINDS'));
+
+PLAN_TABLE_OUTPUT
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL_ID	c56tfwjq80sn4, child number 0
+-------------------------------------
+select max(data) max_data, count(*) from t1 where pk= :v01
+
+Plan hash value: 3724264953
+
+---------------------------------------------------------------------------
+| Id  | Operation	   | Name | Rows  | Bytes | Cost (%CPU)| Time	  |
+---------------------------------------------------------------------------
+|   0 | SELECT STATEMENT   |	  |	  |	  |  1107 (100)|	  |
+|   1 |  SORT AGGREGATE    |	  |	1 |    54 |	       |	  |
+|*  2 |   TABLE ACCESS FULL| T1   |   499K|    25M|  1107   (1)| 00:00:01 |
+---------------------------------------------------------------------------
+
+Peeked Binds (identified by position):
+--------------------------------------
+
+   1 - :V01 (NUMBER): 20
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - filter("PK"=:V01)
+
+
+
+
+
+
+ 
+ 
